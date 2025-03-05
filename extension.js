@@ -229,10 +229,31 @@ function activate(context) {
             }
         }
     );
+    
+    // Register the toggle project tree command
+    let toggleTreeDisposable = vscode.commands.registerCommand(
+        'snapsource.toggleProjectTree', 
+        async () => {
+            try {
+                const config = vscode.workspace.getConfiguration('copy4ai');
+                const currentValue = config.get('includeProjectTree');
+                
+                // Toggle the value
+                await config.update('includeProjectTree', !currentValue, vscode.ConfigurationTarget.Global);
+                
+                // Show notification to the user
+                const status = !currentValue ? 'enabled' : 'disabled';
+                vscode.window.showInformationMessage(`Project tree is now ${status} when copying code.`);
+            } catch (error) {
+                vscode.window.showErrorMessage(`Error toggling project tree: ${error.message}`);
+            }
+        }
+    );
 
     // Add commands to subscriptions
     context.subscriptions.push(copyToClipboardCommand);
     context.subscriptions.push(copyProjectStructureCommand);
+    context.subscriptions.push(toggleTreeDisposable);
 }
 
 async function addGitIgnoreRules(rootPath, ig) {

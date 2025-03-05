@@ -54,6 +54,10 @@
       {
         "command": "snapsource.copyProjectStructure",
         "title": "Copy Project Structure (Copy4AI)"
+      },
+      {
+        "command": "snapsource.toggleProjectTree",
+        "title": "Toggle Project Tree (Copy4AI)"
       }
     ],
     "menus": {
@@ -65,6 +69,9 @@
         {
           "command": "snapsource.copyProjectStructure",
           "when": "false"
+        },
+        {
+          "command": "snapsource.toggleProjectTree"
         }
       ],
       "explorer/context": [
