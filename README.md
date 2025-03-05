@@ -87,7 +87,7 @@ If you have any feedback or would like to contribute to the development of Copy4
 
 **Enjoy using Copy4AI!**
 
-[![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/LeonKohli.copy4ai.svg?style=for-the-badge&label=VS%20Code%20Marketplace&logo=visual-studio-code)](https://marketplace.visualstudio.com/items?itemName=LeonKohli.snapsource)
+[![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/LeonKohli.snapsource.svg?style=for-the-badge&label=VS%20Code%20Marketplace&logo=visual-studio-code)](https://marketplace.visualstudio.com/items?itemName=LeonKohli.snapsource)
 [![GitHub stars](https://img.shields.io/github/stars/LeonKohli/copy4ai.svg?style=for-the-badge&logo=github)](https://github.com/leonkohli/copy4ai/stargazers)
 [![License](https://img.shields.io/github/license/LeonKohli/copy4ai.svg?style=for-the-badge)](https://github.com/leonkohli/copy4ai/blob/master/LICENSE)
 
