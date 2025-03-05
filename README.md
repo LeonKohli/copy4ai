@@ -29,6 +29,9 @@ Copy4AI (formerly SnapSource) is a powerful Visual Studio Code extension that al
 3. The content will be copied to your clipboard, excluding dot files, binary files, and respecting ignore patterns and size limits.
 4. Paste the content into your preferred LLM interface.
 
+Additional commands:
+- Use the **Toggle Project Tree (Copy4AI)** command from the Command Palette to quickly enable or disable project tree inclusion in the output without changing settings.
+
 A progress indicator will show the status of the operation, especially useful for large files or when token counting is enabled.
 
 ## ⚙️ Extension Settings
@@ -67,6 +70,12 @@ This extension contributes the following settings:
 None at this time.
 
 ## 📝 Release Notes
+
+### 1.0.16
+
+#### Added
+- New "Toggle Project Tree" command accessible from the Command Palette
+- Ability to quickly toggle project tree inclusion in output without going to settings
 
 ### 1.0.12
 

@@ -2,6 +2,12 @@
 
 All notable changes to the "Copy4AI" extension will be documented in this file.
 
+## [1.0.16] - 2025-03-05
+
+### Added
+- New "Toggle Project Tree" command accessible from the Command Palette
+- Ability to quickly toggle project tree inclusion in output without going to settings
+
 ## [1.0.15] - 2024-02-28
 
 ### Added
