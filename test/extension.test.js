@@ -3,6 +3,8 @@ const vscode = require('vscode');
 const extension = require('../extension');
 const path = require('path');
 
+
+
 suite('Copy4AI Extension Test Suite', () => {
     suiteSetup(async () => {
         // This is run once before all tests
@@ -399,6 +401,147 @@ suite('Copy4AI Extension Test Suite', () => {
                 } catch (err) {
                     console.error(`Error cleaning up multiple test files: ${err.message}`);
                 }
+            }
+        });
+    });
+    
+
+    suite('Exclusion Patterns', () => {
+        test('Should exclude files using glob patterns', () => {
+            // Create an ignore instance with standard patterns
+            const ig = extension.createIgnoreInstance(['config', '*.log']);
+            
+            // Test paths - use platform-agnostic path handling
+            const relativePath1 = path.join('src', 'config');
+            const relativePath2 = path.join('vendor', 'package', 'config');
+            
+            // Both should be excluded with the generic pattern
+            assert.strictEqual(ig.ignores(relativePath1), true);
+            assert.strictEqual(ig.ignores(relativePath2), true);
+        });
+        
+        test('Should exclude specific paths with absolute path exclusion', () => {
+            // Create a mock workspace path that's platform-independent
+            const workspacePath = path.resolve('/mock/workspace');
+            
+            // Define absolute paths to exclude with platform-independent path
+            const absolutePathsToExclude = [path.join('src', 'config')];
+            
+            // Create the exclusion function using the helper
+            const isExcludedByAbsolutePath = extension.createAbsolutePathExclusionFn(
+                workspacePath, 
+                absolutePathsToExclude
+            );
+            
+            // Test paths with platform-independent join
+            const filePath1 = path.join(workspacePath, 'src', 'config');
+            const filePath2 = path.join(workspacePath, 'vendor', 'package', 'config');
+            const filePath3 = path.join(workspacePath, 'src', 'config', 'settings.json');
+            
+            // Verify exclusions
+            assert.strictEqual(isExcludedByAbsolutePath(filePath1), true, 'src/config should be excluded');
+            assert.strictEqual(isExcludedByAbsolutePath(filePath2), false, 'vendor/package/config should not be excluded');
+            assert.strictEqual(isExcludedByAbsolutePath(filePath3), true, 'src/config/settings.json should be excluded');
+        });
+        
+        test('Should handle combined exclusion patterns correctly', () => {
+            // Create a mock workspace path with platform-independent path
+            const workspacePath = path.resolve('/mock/workspace');
+            
+            // Create an ignore instance with standard patterns
+            const ig = extension.createIgnoreInstance(['*.log', '*.tmp']);
+            
+            // Create the absolute path exclusion function with platform-independent path
+            const isExcludedByAbsolutePath = extension.createAbsolutePathExclusionFn(
+                workspacePath, 
+                [path.join('src', 'config')]
+            );
+            
+            // Test paths with platform-independent joins
+            const paths = [
+                { 
+                    path: path.join(workspacePath, 'src', 'config', 'app.js'), 
+                    expected: true, 
+                    message: 'src/config/app.js should be excluded by absolute path' 
+                },
+                { 
+                    path: path.join(workspacePath, 'src', 'utils', 'app.log'), 
+                    expected: true, 
+                    message: 'src/utils/app.log should be excluded by pattern' 
+                },
+                { 
+                    path: path.join(workspacePath, 'vendor', 'package', 'config', 'app.js'), 
+                    expected: false, 
+                    message: 'vendor/package/config/app.js should not be excluded' 
+                },
+                { 
+                    path: path.join(workspacePath, 'src', 'app.js'), 
+                    expected: false, 
+                    message: 'src/app.js should not be excluded' 
+                }
+            ];
+            
+            // Test each path
+            paths.forEach(testPath => {
+                const relativePath = path.relative(workspacePath, testPath.path);
+                const isExcluded = ig.ignores(relativePath) || isExcludedByAbsolutePath(testPath.path);
+                assert.strictEqual(isExcluded, testPath.expected, testPath.message);
+            });
+        });
+
+        test('Should respect exclude configuration in workspace settings', async function() {
+            this.timeout(10000); // Increase timeout for this test
+            
+            // Get the test workspace path
+            const testWorkspacePath = path.join(__dirname, 'testWorkspace');
+            
+            try {
+                // Open the test workspace
+                await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(testWorkspacePath));
+                
+                // Wait for workspace to open and settings to be loaded
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                // Get the configuration
+                const config = vscode.workspace.getConfiguration('copy4ai');
+                const excludeConfig = config.get('exclude');
+                
+                // Verify the exclude configuration is loaded correctly
+                assert.ok(excludeConfig, 'Exclude configuration should be present');
+                assert.deepStrictEqual(excludeConfig.paths, ['src/config'], 'Should have correct paths in exclude config');
+                assert.deepStrictEqual(excludeConfig.patterns, ['*.log'], 'Should have correct patterns in exclude config');
+                
+                // Test copying the project structure
+                await vscode.commands.executeCommand('snapsource.copyProjectStructure');
+                
+                // Wait longer for the command to complete and clipboard to update
+                await new Promise(resolve => setTimeout(resolve, 3000));
+                
+                // Get clipboard content
+                const clipboardContent = await vscode.env.clipboard.readText();
+                
+                // For debugging purposes only - can be removed in production
+                // console.log('Clipboard content:', clipboardContent);
+                
+                // Verify src/config is excluded
+                const srcConfigIncluded = clipboardContent.includes('src/config/config.js');
+                assert.strictEqual(srcConfigIncluded, false, 'src/config/config.js should be excluded');
+                
+                // Check if src directory is marked as having ignored files
+                const srcIgnored = clipboardContent.includes('src') && 
+                                  (clipboardContent.includes('(all files ignored)') || 
+                                   clipboardContent.includes('(excluded') || 
+                                   !clipboardContent.includes('src/config'));
+                assert.strictEqual(srcIgnored, true, 'src directory should indicate files are ignored or excluded');
+                
+                // Verify vendor/package/config is included
+                const vendorPathIncluded = clipboardContent.includes('vendor') && 
+                                          clipboardContent.includes('package') && 
+                                          clipboardContent.includes('config');
+                assert.strictEqual(vendorPathIncluded, true, 'vendor/package/config path structure should be included');
+            } finally {
+                // Return to the original workspace if needed
+                // This step might be optional depending on your test setup
             }
         });
     });

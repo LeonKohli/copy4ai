@@ -1,2 +1,6 @@
 {
+    "copy4ai.exclude": {
+        "paths": ["src/config"],
+        "patterns": ["*.log"]
+    }
 }

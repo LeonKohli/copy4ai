@@ -2,7 +2,7 @@
   "name": "snapsource",
   "displayName": "Copy4AI - Copy Project Code to ChatGPT",
   "description": "Easily copy file and folder contents with project tree structure to clipboard for AI (LLM/ChatGPT/Claude/...) context.",
-  "version": "1.0.16",
+  "version": "1.0.17",
   "publisher": "LeonKohli",
   "author": {
     "name": "Leon Kohli"
@@ -113,13 +113,25 @@
             "default": 5,
             "description": "Maximum depth of the project tree"
           },
-          "copy4ai.excludePatterns": {
-            "type": "array",
-            "default": [
-              "node_modules",
-              "*.log"
-            ],
-            "description": "Additional patterns to exclude from the project tree and file copying (dot files are always ignored)"
+          "copy4ai.exclude": {
+            "type": "object",
+            "default": {
+              "paths": [],
+              "patterns": ["node_modules", "*.log"]
+            },
+            "description": "Exclusion configuration for files and directories",
+            "properties": {
+              "paths": {
+                "type": "array",
+                "default": [],
+                "description": "Absolute paths (relative to workspace root) to exclude from the project tree and file copying"
+              },
+              "patterns": {
+                "type": "array",
+                "default": ["node_modules", "*.log"],
+                "description": "Glob patterns to exclude from the project tree and file copying"
+              }
+            }
           },
           "copy4ai.outputFormat": {
             "type": "string",
