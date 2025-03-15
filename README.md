@@ -42,7 +42,7 @@ This extension contributes the following settings:
 |---------|-------------|---------|
 | `copy4ai.ignoreGitIgnore` | Respect .gitignore rules when generating the project tree and copying files | `true` |
 | `copy4ai.maxDepth` | Maximum depth of the project tree | `5` |
-| `copy4ai.excludePatterns` | Additional patterns to exclude from the project tree and file copying | `["node_modules", "*.log"]` |
+| `copy4ai.exclude` | Exclusion configuration for files and directories | `{ "paths": [], "patterns": ["node_modules", "*.log"] }` |
 | `copy4ai.outputFormat` | Output format for the copied content (options: "plaintext", "markdown", "xml") | `"markdown"` |
 | `copy4ai.maxFileSize` | Maximum file size (in bytes) to include in the output | `1048576` (1MB) |
 | `copy4ai.includeProjectTree` | Include the project tree structure in the output | `true` |
@@ -101,3 +101,25 @@ If you have any feedback or would like to contribute to the development of Copy4
 [![License](https://img.shields.io/github/license/LeonKohli/copy4ai.svg?style=for-the-badge)](https://github.com/leonkohli/copy4ai/blob/master/LICENSE)
 
 </div>
+
+### Exclusion Configuration
+
+The `copy4ai.exclude` setting provides precise control over what files and directories are excluded:
+
+```json
+"copy4ai.exclude": {
+  "paths": ["src/config", "vendor/unwanted-package"],
+  "patterns": ["node_modules", "*.log", "*.tmp"]
+}
+```
+
+- **paths**: Absolute paths relative to workspace root. These are exact path matches that will exclude specific directories or files regardless of their name. This solves the problem of excluding directories with common names (like "config") in specific locations while keeping others.
+- **patterns**: Standard glob patterns for more general exclusions.
+
+> **Note:** In version 1.0.17, the `excludePatterns` setting was replaced with the more flexible `exclude` object. Please update your configuration accordingly.
+
+## 🔍 Output Formats
+
+1. **Plaintext**: A simple text format with clear sections for project structure (if enabled) and file contents.
+2. **Markdown**: A formatted markdown output with code blocks for project structure (if enabled) and file contents.
+3. **XML**: A structured XML format with separate sections for project structure and file contents.
