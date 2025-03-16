@@ -30,33 +30,34 @@ async function copyToClipboard(uri, uris, options = {}) {
             const ignoreGitIgnore = config.get('ignoreGitIgnore');
             const maxDepth = config.get('maxDepth');
             
-            // Handle backward compatibility with old excludePatterns setting
-            let excludeConfig = config.get('exclude');
-            if (!excludeConfig) {
+            // Get exclude settings
+            const excludePaths = config.get('excludePaths');
+            const excludePatterns = config.get('excludePatterns');
+            
+            let excludeConfig;
+            
+            // Use new flat settings if available
+            if (Array.isArray(excludePaths) || Array.isArray(excludePatterns)) {
+                excludeConfig = {
+                    paths: Array.isArray(excludePaths) ? excludePaths : [],
+                    patterns: Array.isArray(excludePatterns) ? excludePatterns : ["node_modules", "*.log"]
+                };
+            } else {
+                // Only support the oldest format (excludePatterns array)
                 const oldExcludePatterns = config.get('excludePatterns');
                 if (oldExcludePatterns) {
-                    // Migrate old format to new format
+                    // Use old format
                     excludeConfig = { 
                         paths: [], 
                         patterns: oldExcludePatterns 
                     };
-                    // Show migration message to user
-                    vscode.window.showInformationMessage(
-                        'Copy4AI: The "excludePatterns" setting is deprecated. Please update to the new "exclude" setting format.'
-                    );
                 } else {
-                    // Use default if neither setting exists - get defaults from configuration
+                    // Use defaults if no settings exist
                     excludeConfig = { 
                         paths: [], 
-                        patterns: config.get('exclude.patterns', ["node_modules", "*.log"]) 
+                        patterns: ["node_modules", "*.log"]
                     };
                 }
-            } else {
-                // Ensure paths and patterns exist and have defaults if not provided
-                excludeConfig.paths = Array.isArray(excludeConfig.paths) ? excludeConfig.paths : [];
-                excludeConfig.patterns = Array.isArray(excludeConfig.patterns) ? 
-                    excludeConfig.patterns : 
-                    config.get('exclude.patterns', ["node_modules", "*.log"]);
             }
             
             const outputFormat = config.get('outputFormat');

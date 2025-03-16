@@ -113,25 +113,23 @@
             "default": 5,
             "description": "Maximum depth of the project tree"
           },
-          "copy4ai.exclude": {
-            "type": "object",
-            "default": {
-              "paths": [],
-              "patterns": ["node_modules", "*.log"]
+          "copy4ai.excludePaths": {
+            "type": "array",
+            "default": [],
+            "items": {
+              "type": "string"
             },
-            "description": "Exclusion configuration for files and directories",
-            "properties": {
-              "paths": {
-                "type": "array",
-                "default": [],
-                "description": "Absolute paths (relative to workspace root) to exclude from the project tree and file copying"
-              },
-              "patterns": {
-                "type": "array",
-                "default": ["node_modules", "*.log"],
-                "description": "Glob patterns to exclude from the project tree and file copying"
-              }
-            }
+            "description": "Absolute paths relative to workspace root to exclude (e.g., 'src/config')",
+            "scope": "resource"
+          },
+          "copy4ai.excludePatterns": {
+            "type": "array",
+            "default": ["node_modules", "*.log"],
+            "items": {
+              "type": "string"
+            },
+            "description": "Glob patterns to exclude (e.g., '*.tmp', 'build/**')",
+            "scope": "resource"
           },
           "copy4ai.outputFormat": {
             "type": "string",
