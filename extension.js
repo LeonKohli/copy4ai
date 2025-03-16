@@ -307,8 +307,7 @@ async function getProjectTree(dir, ig, maxDepth, currentDepth = 0, prefix = '', 
     if (typeof isExcludedByAbsolutePath === 'function' && currentDepth > 0) {
         try {
             if (isExcludedByAbsolutePath(dir)) {
-                const relativePath = path.relative(path.dirname(dir), dir);
-                return `${prefix}${relativePath} (excluded by path configuration)\n`;
+                return '';
             }
         } catch (error) {
             console.error(`Error checking path exclusion: ${error.message}`);
@@ -359,9 +358,9 @@ async function getProjectTree(dir, ig, maxDepth, currentDepth = 0, prefix = '', 
             }
         }
         
-        // If all files are ignored/excluded, show a message
+        // If all files are ignored/excluded, return empty string instead of showing a message
         if (visibleFiles.length === 0) {
-            return `${prefix}(all files filtered by exclusion rules)\n`;
+            return '';
         }
         
         // Add file information and sort
@@ -402,7 +401,11 @@ async function getProjectTree(dir, ig, maxDepth, currentDepth = 0, prefix = '', 
                 result += `${prefix}${branch}${file}\n`;
                 
                 if (isDirectory) {
-                    result += await getProjectTree(filePath, ig, maxDepth, currentDepth + 1, prefix + (isLast ? '    ' : '│   '), isExcludedByAbsolutePath);
+                    const subTree = await getProjectTree(filePath, ig, maxDepth, currentDepth + 1, prefix + (isLast ? '    ' : '│   '), isExcludedByAbsolutePath);
+                    // Only append the result if it's not empty (meaning the directory wasn't excluded)
+                    if (subTree) {
+                        result += subTree;
+                    }
                 }
             } catch (error) {
                 // Handle specific error for file/directory access
