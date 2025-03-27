@@ -73,6 +73,16 @@ None at this time.
 
 ## 📝 Release Notes
 
+### 1.0.18
+
+#### Added
+- New setting `copy4ai.ignoreDotFiles` to control whether dot files are ignored
+- New "Toggle Dot Files Inclusion" command in the Command Palette
+- Ability to include .github and other dot directories in copied content
+
+#### Fixed
+- Fixed issue where .github/workflows files couldn't be copied (fixes #6)
+
 ### 1.0.16
 
 #### Added
