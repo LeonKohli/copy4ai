@@ -2,6 +2,16 @@
 
 All notable changes to the "Copy4AI" extension will be documented in this file.
 
+## [1.0.18] - 2025-03-27
+
+### Added
+- New setting `copy4ai.ignoreDotFiles` to control whether files and directories starting with a dot (.) are ignored
+- Now you can include .github and other dot directories by setting `copy4ai.ignoreDotFiles` to false
+- New "Toggle Dot Files Inclusion" command accessible from the Command Palette for quick switching
+
+### Fixed
+- Fixed issue where .github/workflows and other dot directories couldn't be copied even when selected (fixes #6)
+
 ## [1.0.17] - 2025-03-15
 
 ### Added

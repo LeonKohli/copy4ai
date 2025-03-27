@@ -29,6 +29,7 @@ async function copyToClipboard(uri, uris, options = {}) {
             const config = vscode.workspace.getConfiguration('copy4ai');
             const ignoreGitIgnore = config.get('ignoreGitIgnore');
             const maxDepth = config.get('maxDepth');
+            const ignoreDotFiles = config.get('ignoreDotFiles') !== false; // Default to true if not set
             
             // Get exclude settings
             const excludePaths = config.get('excludePaths');
@@ -83,7 +84,12 @@ async function copyToClipboard(uri, uris, options = {}) {
             if (itemsToProcess.length > 0) {
                 const workspaceFolder = vscode.workspace.getWorkspaceFolder(itemsToProcess[0]);
                 if (workspaceFolder) {
-                    const ig = ignore().add(excludeConfig.patterns || []).add('.*');
+                    const ig = ignore().add(excludeConfig.patterns || []);
+                    
+                    // Only add .* to ignore list if ignoreDotFiles is true
+                    if (ignoreDotFiles) {
+                        ig.add('.*');
+                    }
 
                     if (ignoreGitIgnore) {
                         await addGitIgnoreRules(workspaceFolder.uri.fsPath, ig);
@@ -283,11 +289,32 @@ function activate(context) {
             }
         }
     );
+    
+    // Register the toggle dot files command
+    let toggleDotFilesDisposable = vscode.commands.registerCommand(
+        'snapsource.toggleDotFiles', 
+        async () => {
+            try {
+                const config = vscode.workspace.getConfiguration('copy4ai');
+                const currentValue = config.get('ignoreDotFiles');
+                
+                // Toggle the value
+                await config.update('ignoreDotFiles', !currentValue, vscode.ConfigurationTarget.Global);
+                
+                // Show notification to the user
+                const status = !currentValue ? 'ignored' : 'included';
+                vscode.window.showInformationMessage(`Dot files (.github, etc.) will now be ${status} when copying code.`);
+            } catch (error) {
+                vscode.window.showErrorMessage(`Error toggling dot files setting: ${error.message}`);
+            }
+        }
+    );
 
     // Add commands to subscriptions
     context.subscriptions.push(copyToClipboardCommand);
     context.subscriptions.push(copyProjectStructureCommand);
     context.subscriptions.push(toggleTreeDisposable);
+    context.subscriptions.push(toggleDotFilesDisposable);
 }
 
 async function addGitIgnoreRules(rootPath, ig) {
@@ -679,10 +706,15 @@ function deactivate() {}
 /**
  * Helper function to create an ignore instance with patterns
  * @param {string[]} patterns - Patterns to add to the ignore instance
+ * @param {boolean} ignoreDotFiles - Whether to ignore files starting with a dot
  * @returns {object} - Configured ignore instance
  */
-function createIgnoreInstance(patterns = []) {
-    return ignore().add(patterns).add('.*');
+function createIgnoreInstance(patterns = [], ignoreDotFiles = true) {
+    const ig = ignore().add(patterns);
+    if (ignoreDotFiles) {
+        ig.add('.*');
+    }
+    return ig;
 }
 
 /**

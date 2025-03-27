@@ -2,7 +2,7 @@
   "name": "snapsource",
   "displayName": "Copy4AI - Copy Project Code to ChatGPT",
   "description": "Easily copy file and folder contents with project tree structure to clipboard for AI (LLM/ChatGPT/Claude/...) context.",
-  "version": "1.0.17",
+  "version": "1.0.18",
   "publisher": "LeonKohli",
   "author": {
     "name": "Leon Kohli"
@@ -58,6 +58,10 @@
       {
         "command": "snapsource.toggleProjectTree",
         "title": "Toggle Project Tree (Copy4AI)"
+      },
+      {
+        "command": "snapsource.toggleDotFiles",
+        "title": "Toggle Dot Files Inclusion (Copy4AI)"
       }
     ],
     "menus": {
@@ -72,6 +76,9 @@
         },
         {
           "command": "snapsource.toggleProjectTree"
+        },
+        {
+          "command": "snapsource.toggleDotFiles"
         }
       ],
       "explorer/context": [
@@ -107,6 +114,11 @@
             "type": "boolean",
             "default": true,
             "description": "Respect .gitignore rules when generating the project tree and copying files"
+          },
+          "copy4ai.ignoreDotFiles": {
+            "type": "boolean",
+            "default": true,
+            "description": "Ignore files and directories that start with a dot (.) when generating the project tree and copying files. Set to false to include .github and other dot directories."
           },
           "copy4ai.maxDepth": {
             "type": "number",

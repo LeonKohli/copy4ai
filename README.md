@@ -7,7 +7,7 @@ Copy4AI (formerly SnapSource) is a powerful Visual Studio Code extension that al
 ## 🚀 Features
 
 - 📋 Copy contents of files, folders, or multiple selections to your clipboard along with the project tree structure.
-- 🔒 Automatically ignore dot files (like .env, .git) for security and cleanliness.
+- 🔒 Configurable dot file handling (.env, .git, .github, etc.).
 - 🚫 Respect .gitignore rules and custom exclude patterns.
 - 🌳 Configurable project tree depth.
 - 📄 Three output formats: plaintext, markdown, and XML.
@@ -31,6 +31,7 @@ Copy4AI (formerly SnapSource) is a powerful Visual Studio Code extension that al
 
 Additional commands:
 - Use the **Toggle Project Tree (Copy4AI)** command from the Command Palette to quickly enable or disable project tree inclusion in the output without changing settings.
+- Use the **Toggle Dot Files Inclusion (Copy4AI)** command from the Command Palette to quickly switch between including or excluding dot files (like .github) without changing settings.
 
 A progress indicator will show the status of the operation, especially useful for large files or when token counting is enabled.
 
@@ -41,6 +42,7 @@ This extension contributes the following settings:
 | Setting | Description | Default |
 |---------|-------------|---------|
 | `copy4ai.ignoreGitIgnore` | Respect .gitignore rules when generating the project tree and copying files | `true` |
+| `copy4ai.ignoreDotFiles` | Ignore files and directories that start with a dot (.) when generating the project tree and copying files | `true` |
 | `copy4ai.maxDepth` | Maximum depth of the project tree | `5` |
 | `copy4ai.exclude` | Exclusion configuration for files and directories | `{ "paths": [], "patterns": ["node_modules", "*.log"] }` |
 | `copy4ai.outputFormat` | Output format for the copied content (options: "plaintext", "markdown", "xml") | `"markdown"` |
@@ -53,7 +55,7 @@ This extension contributes the following settings:
 | `copy4ai.enableTokenWarning` | Enable warning when token count exceeds the maximum | `true` |
 | `copy4ai.enableTokenCounting` | Enable token counting and cost estimation (requires network access) | `false` |
 
-> **Note:** Dot files are always ignored, and binary files are automatically detected and excluded.
+> **Note:** By default, dot files are ignored, but this can be changed with the `copy4ai.ignoreDotFiles` setting. Set it to `false` to include .github and other dot directories. Binary files are automatically detected and excluded.
 
 ## 📊 Output Formats
 
