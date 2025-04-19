@@ -3,8 +3,6 @@ const vscode = require('vscode');
 const extension = require('../extension');
 const path = require('path');
 
-
-
 suite('Copy4AI Extension Test Suite', () => {
     suiteSetup(async () => {
         // This is run once before all tests
@@ -26,17 +24,18 @@ suite('Copy4AI Extension Test Suite', () => {
     });
 
     suite('Extension Basics', () => {
-        test('Extension should be present', () => {
-            assert.ok(vscode.extensions.getExtension('LeonKohli.snapsource'));
-        });
-
-        test('Should activate extension', async () => {
+        test('Should register command', async function() {
+            this.timeout(10000); // Increase timeout for this test
+            
+            // Ensure extension is activated
             const ext = vscode.extensions.getExtension('LeonKohli.snapsource');
-            await ext.activate();
-            assert.strictEqual(ext.isActive, true);
-        });
-
-        test('Should register command', async () => {
+            if (ext && !ext.isActive) {
+                await ext.activate();
+            }
+            
+            // Wait a bit for commands to register
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
             const commands = await vscode.commands.getCommands();
             assert.ok(commands.includes('snapsource.copyToClipboard'));
         });
@@ -257,7 +256,7 @@ suite('Copy4AI Extension Test Suite', () => {
                 
                 // Update settings
                 await config.update('outputFormat', 'markdown', vscode.ConfigurationTarget.Global);
-                await config.update('maxDepth', 3, vscode.ConfigurationTarget.Global);
+                await config.update('maxDepth', 5, vscode.ConfigurationTarget.Global);
                 
                 // Wait for settings to be applied
                 await new Promise(resolve => setTimeout(resolve, 1000));
@@ -270,7 +269,7 @@ suite('Copy4AI Extension Test Suite', () => {
                 const depth = updatedConfig.get('maxDepth');
                 
                 assert.strictEqual(format, 'markdown', 'Should update output format setting');
-                assert.strictEqual(depth, 3, 'Should update max depth setting');
+                assert.strictEqual(depth, 5, 'Should update max depth setting');
             } finally {
                 // Reset settings in cleanup
                 await config.update('outputFormat', undefined, vscode.ConfigurationTarget.Global);

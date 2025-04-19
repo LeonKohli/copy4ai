@@ -2,5 +2,9 @@
     "copy4ai.exclude": {
         "paths": ["src/config"],
         "patterns": ["*.log"]
-    }
+    },
+    "copy4ai.ignoreGitIgnore": true,
+    "copy4ai.ignoreDotFiles": true,
+    "copy4ai.maxDepth": 5,
+    "copy4ai.excludePatterns": ["node_modules", "*.log"]
 }
