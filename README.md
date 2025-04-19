@@ -25,7 +25,7 @@ Copy4AI (formerly SnapSource) is a powerful Visual Studio Code extension that al
 1. Select one or multiple files or folders in the VS Code Explorer.
 2. Right-click and select one of the following options:
    - **Copy to Clipboard (Copy4AI)**: Copies the selected files/folders with their content
-   - **Copy Project Structure (Copy4AI)**: Copies only the project tree structure
+   - **Copy Project Structure (Copy4AI)**: Copies only the project tree structure of the selected folder (or entire workspace if no folder is selected)
 3. The content will be copied to your clipboard, excluding dot files, binary files, and respecting ignore patterns and size limits.
 4. Paste the content into your preferred LLM interface.
 
@@ -72,6 +72,12 @@ This extension contributes the following settings:
 None at this time.
 
 ## 📝 Release Notes
+
+### 1.0.19
+
+#### Added
+- Improved "Copy Project Structure" command to use the selected folder as root
+- When right-clicking on a specific folder, only that folder's structure will be copied
 
 ### 1.0.18
 

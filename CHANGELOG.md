@@ -2,6 +2,12 @@
 
 All notable changes to the "Copy4AI" extension will be documented in this file.
 
+## [1.0.19] - 2025-04-19
+
+### Added
+- Improved "Copy Project Structure" to use the selected folder as root instead of always using the workspace root
+- Now when right-clicking on a specific folder, only that folder's structure will be copied
+
 ## [1.0.18] - 2025-03-27
 
 ### Added

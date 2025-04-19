@@ -99,10 +99,33 @@ async function copyToClipboard(uri, uris, options = {}) {
                     const absolutePathsToExclude = excludeConfig.paths || [];
                     const isExcludedByAbsolutePath = createAbsolutePathExclusionFn(workspaceFolder.uri.fsPath, absolutePathsToExclude);
 
+                    // Determine the root path for project tree generation
+                    let projectRootPath = workspaceFolder.uri.fsPath;
+                    let projectRootName = '';
+                    
+                    // If useSelectedFolderAsRoot is true, use the selected folder as the root
+                    if (options.useSelectedFolderAsRoot && itemsToProcess[0]) {
+                        try {
+                            const stats = await fs.stat(itemsToProcess[0].fsPath);
+                            if (stats.isDirectory()) {
+                                projectRootPath = itemsToProcess[0].fsPath;
+                                projectRootName = path.basename(projectRootPath) + '/';
+                            }
+                        } catch (error) {
+                            // If there's an error, fall back to workspace folder
+                            console.error('Error using selected folder as root:', error);
+                        }
+                    }
+                    
                     // Get project tree if needed
                     progress.report({ increment: 15, message: "Generating project tree..." });
                     let projectTree = includeProjectTree ? 
-                        await getProjectTree(workspaceFolder.uri.fsPath, ig, maxDepth, 0, '', isExcludedByAbsolutePath) : '';
+                        await getProjectTree(projectRootPath, ig, maxDepth, 0, '', isExcludedByAbsolutePath) : '';
+                    
+                    // If we're using a subfolder as root, add its name at the top of the tree
+                    if (options.useSelectedFolderAsRoot && projectRootName) {
+                        projectTree = projectRootName + '\n' + projectTree;
+                    }
                     
                     let processedContent = [];
                     
@@ -248,7 +271,7 @@ function activate(context) {
         'snapsource.copyProjectStructure', 
         async (uri) => {
             try {
-                // For project structure, we want to use the workspace root if possible
+                // For project structure, we want to use the selected folder if possible
                 let targetUri = uri;
                 
                 // If no URI was provided or we're not in a workspace, show an error
@@ -262,7 +285,8 @@ function activate(context) {
                 }
                 
                 return copyToClipboard(targetUri, null, { 
-                    projectTreeOnly: true 
+                    projectTreeOnly: true,
+                    useSelectedFolderAsRoot: true  // New flag to use selected folder as root
                 });
             } catch (error) {
                 vscode.window.showErrorMessage(`Error: ${error.message}`);
