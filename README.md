@@ -73,6 +73,13 @@ None at this time.
 
 ## 📝 Release Notes
 
+### 1.0.21
+
+#### Added
+- Enhanced GitHub Actions workflow to publish to both Visual Studio Marketplace and Open VSX Registry
+- Upgraded to HaaLeo/publish-vscode-extension@v2 for better performance and features
+- Single packaging with reuse pattern for more efficient publishing process
+
 ### 1.0.20
 
 #### Fixed

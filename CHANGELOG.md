@@ -2,6 +2,13 @@
 
 All notable changes to the "Copy4AI" extension will be documented in this file.
 
+## [1.0.21] - 2025-05-24
+
+### Added
+- Enhanced GitHub Actions workflow to publish to both Visual Studio Marketplace and Open VSX Registry
+- Upgraded to HaaLeo/publish-vscode-extension@v2 for better performance and features
+- Single packaging with reuse pattern for more efficient publishing process
+
 ## [1.0.20] - 2025-05-24
 
 ### Fixed
