@@ -2,6 +2,18 @@
 
 All notable changes to the "Copy4AI" extension will be documented in this file.
 
+## [1.0.20] - 2025-05-24
+
+### Fixed
+- **CRITICAL FIX**: Resolved issue where files with unsupported encodings (UTF-16, UTF-32) would cause the extension to stop processing subsequent files (fixes #8)
+- Improved error handling to ensure all processable files are included even when some files cannot be read
+- Enhanced encoding detection to better identify and handle non-UTF-8 files
+- Added graceful fallback for files that cannot be read due to encoding or permission issues
+
+### Added
+- Better error messages for files with unsupported encodings
+- Comprehensive test coverage for encoding issues and error handling scenarios
+
 ## [1.0.19] - 2025-04-19
 
 ### Added

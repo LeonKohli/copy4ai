@@ -73,34 +73,22 @@ None at this time.
 
 ## 📝 Release Notes
 
+### 1.0.20
+
+#### Fixed
+- **CRITICAL FIX**: Resolved issue where files with unsupported encodings (UTF-16, UTF-32) would cause the extension to stop processing subsequent files (fixes #8)
+- Improved error handling to ensure all processable files are included even when some files cannot be read
+- Enhanced encoding detection to better identify and handle non-UTF-8 files
+
+#### Added
+- Better error messages for files with unsupported encodings
+- Comprehensive test coverage for encoding issues and error handling scenarios
+
 ### 1.0.19
 
 #### Added
 - Improved "Copy Project Structure" command to use the selected folder as root
 - When right-clicking on a specific folder, only that folder's structure will be copied
-
-### 1.0.18
-
-#### Added
-- New setting `copy4ai.ignoreDotFiles` to control whether dot files are ignored
-- New "Toggle Dot Files Inclusion" command in the Command Palette
-- Ability to include .github and other dot directories in copied content
-
-#### Fixed
-- Fixed issue where .github/workflows files couldn't be copied (fixes #6)
-
-### 1.0.16
-
-#### Added
-- New "Toggle Project Tree" command accessible from the Command Palette
-- Ability to quickly toggle project tree inclusion in output without going to settings
-
-### 1.0.12
-
-#### Changed
-- Renamed extension from SnapSource to Copy4AI
-- Updated all configuration settings to use new namespace
-- Updated documentation and branding
 
 For a full list of changes, please see the [CHANGELOG.md](CHANGELOG.md) file.
 

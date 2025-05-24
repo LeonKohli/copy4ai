@@ -600,5 +600,56 @@ suite('Copy4AI Extension Test Suite', () => {
                 }
             }
         });
+
+        test('Should handle encoding issues gracefully and continue processing other files', async function() {
+            this.timeout(15000); // Increase timeout for this test
+            
+            // Get the test workspace path
+            const testWorkspacePath = path.join(__dirname, 'testWorkspace');
+            
+            try {
+                // Open the test workspace (it already has UTF-16 LE requirements.txt and other files)
+                await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(testWorkspacePath));
+                
+                // Wait for workspace to open
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                // Copy the entire test workspace content
+                await vscode.commands.executeCommand(
+                    'snapsource.copyToClipboard', 
+                    vscode.Uri.file(testWorkspacePath)
+                );
+                
+                // Wait for the command to complete
+                await new Promise(resolve => setTimeout(resolve, 3000));
+                
+                // Read the clipboard content
+                const clipboardContent = await vscode.env.clipboard.readText();
+                
+
+                // Verify that UTF-16 file is handled gracefully
+                assert.ok(clipboardContent.includes('requirements.txt'), 'Should include requirements.txt file path');
+                assert.ok(clipboardContent.includes('Binary file content not included') || 
+                         clipboardContent.includes('unsupported encoding') ||
+                         clipboardContent.includes('UTF-16') ||
+                         clipboardContent.includes('convert to UTF-8') ||
+                         clipboardContent.includes('appears to be UTF-16'), 
+                         'Should indicate that requirements.txt content is not included due to encoding/binary detection');
+                
+                // Verify that other Python files are still processed despite the encoding error
+                assert.ok(clipboardContent.includes('starthanders.py'), 'Should include starthanders.py file');
+                assert.ok(clipboardContent.includes('urlhandlers.py'), 'Should include urlhandlers.py file');
+                assert.ok(clipboardContent.includes('def start_handler'), 'Should include content from starthanders.py');
+                assert.ok(clipboardContent.includes('def handle_url'), 'Should include content from urlhandlers.py');
+                
+                // Verify all files are listed in the project structure, even if content can't be read
+                assert.ok(clipboardContent.includes('Project Structure') || 
+                         clipboardContent.includes('File Contents'), 
+                         'Should include structure/content headers');
+                
+            } finally {
+                // Note: We don't clean up the test files as they're part of the test workspace
+            }
+        });
     });
 });

@@ -576,6 +576,48 @@ async function processFile(filePath, rootPath, ig, maxFileSize, compressCode, re
             console.error(`Error checking if file is binary: ${filePath}: ${error.message}`);
         }
         
+        // Additional check for files that might have encoding issues
+        try {
+            // Read a small sample to detect encoding issues early
+            const fileHandle = await fs.open(filePath, 'r');
+            const sampleBuffer = Buffer.alloc(1024);
+            const { bytesRead } = await fileHandle.read(sampleBuffer, 0, 1024, 0);
+            await fileHandle.close();
+            const actualSample = sampleBuffer.subarray(0, bytesRead);
+            
+            // Check for UTF-16 BOM (Byte Order Mark) or other non-UTF-8 indicators
+            if (actualSample.length >= 2) {
+                const firstBytes = actualSample.subarray(0, 4);
+                
+                // UTF-16 LE BOM: FF FE
+                // UTF-16 BE BOM: FE FF  
+                // UTF-32 LE BOM: FF FE 00 00
+                // UTF-32 BE BOM: 00 00 FE FF
+                if ((firstBytes[0] === 0xFF && firstBytes[1] === 0xFE) ||
+                    (firstBytes[0] === 0xFE && firstBytes[1] === 0xFF) ||
+                    (firstBytes.length >= 4 && firstBytes[0] === 0xFF && firstBytes[1] === 0xFE && firstBytes[2] === 0x00 && firstBytes[3] === 0x00) ||
+                    (firstBytes.length >= 4 && firstBytes[0] === 0x00 && firstBytes[1] === 0x00 && firstBytes[2] === 0xFE && firstBytes[3] === 0xFF)) {
+                    return {
+                        path: path.relative(rootPath, filePath),
+                        content: '[File content not included - UTF-16/UTF-32 encoding detected. Please convert to UTF-8 for inclusion]'
+                    };
+                }
+                
+                // Check for high ratio of null bytes (common in UTF-16)
+                const nullBytes = actualSample.filter(byte => byte === 0).length;
+                const nullRatio = nullBytes / actualSample.length;
+                if (nullRatio > 0.1) { // If more than 10% null bytes, likely UTF-16 or similar
+                    return {
+                        path: path.relative(rootPath, filePath),
+                        content: '[File content not included - appears to be UTF-16 or similar encoding. Please convert to UTF-8 for inclusion]'
+                    };
+                }
+            }
+        } catch (error) {
+            // If sample reading fails, we'll try normal UTF-8 reading and handle errors there
+            console.error(`Error reading file sample ${filePath}: ${error.message}`);
+        }
+        
         try {
             // Read file content
             let content = await fs.readFile(filePath, 'utf8');
@@ -594,14 +636,23 @@ async function processFile(filePath, rootPath, ig, maxFileSize, compressCode, re
                 content
             };
         } catch (error) {
-            // Handle binary files or encoding errors by skipping
-            if (error.code === 'ERR_ENCODING_INVALID_ENCODED_DATA') {
+            // Handle encoding errors gracefully - don't stop processing other files
+            if (error.code === 'ERR_ENCODING_INVALID_ENCODED_DATA' || 
+                error.message.includes('invalid byte sequence') ||
+                error.message.includes('malformed UTF-8') ||
+                error.message.includes('cannot decode')) {
                 return {
                     path: path.relative(rootPath, filePath),
-                    content: '[Binary file content not included]'
+                    content: '[File content not included - unsupported encoding. File may be UTF-16, UTF-32, or binary format]'
                 };
             }
-            throw error; // Re-throw other errors
+            
+            // For other errors, log but don't throw - this prevents stopping processing of subsequent files
+            console.error(`Error reading file ${filePath}: ${error.message}`);
+            return {
+                path: path.relative(rootPath, filePath),
+                content: `[File content not included - read error: ${error.message}]`
+            };
         }
     } catch (error) {
         // Log but don't return for error cases
