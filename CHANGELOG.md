@@ -18,17 +18,6 @@ All notable changes to the "Copy4AI" extension will be documented in this file.
 - Updated build process to compile TypeScript to JavaScript
 - All tests passing with the new TypeScript architecture
 
-### Fixed
-- Fixed file extension handling for files without extensions (now properly shows no language in markdown code blocks)
-- Updated test expectations to match the more accurate language mapping (e.g., 'javascript' instead of 'js')
-- Fixed VS Code launch configuration paths for debugging
-- Corrected dependency categorization in package.json
-
-### Removed
-- Cleaned up orphaned development files (`CLAUDE.md`, `vsc-extension-quickstart.md`)
-- Removed outdated test configuration files (`.vscode-test.js`, `.vscode-test.mjs`)
-- Removed unused dependencies (`@types/glob`, `glob`)
-- Cleaned up unused test files (`test-file.js`, `sample.js`)
 
 ### Technical Improvements
 - Better separation of concerns with dedicated service classes
