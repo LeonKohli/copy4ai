@@ -73,6 +73,21 @@ None at this time.
 
 ## 📝 Release Notes
 
+### 1.1.0
+
+#### Major Update - TypeScript Migration
+- **Major refactoring**: Complete migration from JavaScript to TypeScript for enhanced type safety and maintainability
+- Restructured codebase into modular architecture with dedicated service classes
+- Improved error handling, file extension detection, and dependency management
+- Comprehensive repository cleanup removing orphaned and legacy files
+- All 19 tests passing with enhanced test coverage
+
+#### Technical Improvements
+- Better separation of concerns with dedicated utility classes
+- Enhanced code maintainability and extensibility
+- Optimized dependency structure and build process
+- Cleaner API design with well-defined TypeScript interfaces
+
 ### 1.0.21
 
 #### Added
@@ -98,6 +113,29 @@ None at this time.
 - When right-clicking on a specific folder, only that folder's structure will be copied
 
 For a full list of changes, please see the [CHANGELOG.md](CHANGELOG.md) file.
+
+## 🛠️ Development
+
+This extension is built with TypeScript and uses the VS Code Extension API. The codebase follows modern TypeScript best practices with a modular architecture.
+
+### Building
+
+```bash
+npm run compile    # Compile TypeScript to JavaScript
+npm run watch      # Watch mode for development
+npm run lint       # Run ESLint
+npm test          # Run tests
+```
+
+### Architecture
+
+The extension is organized into modular utility classes:
+- `ConfigurationService` - Centralized configuration management
+- `FileProcessor` - File processing and encoding detection
+- `ProjectTreeGenerator` - Project structure generation
+- `OutputFormatter` - Different output formats (markdown, XML, plaintext)
+- `IgnoreUtils` - Handling ignore patterns and exclusions
+- `TokenCounter` - Token counting and cost estimation
 
 ## 💬 Feedback and Contributions
 

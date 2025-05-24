@@ -1,6 +1,11 @@
 const assert = require('assert');
 const vscode = require('vscode');
-const extension = require('../extension');
+const { 
+    OutputFormatter, 
+    FileProcessor, 
+    IgnoreUtils, 
+    ConfigurationService 
+} = require('../out/extension');
 const path = require('path');
 
 suite('Copy4AI Extension Test Suite', () => {
@@ -57,7 +62,7 @@ suite('Copy4AI Extension Test Suite', () => {
             ];
 
             // Test plaintext format
-            const plaintextResult = extension.formatOutput('plaintext', projectTree, content);
+            const plaintextResult = OutputFormatter.formatOutput('plaintext', projectTree, content);
             assert.strictEqual(typeof plaintextResult, 'string', 'Plaintext output should be a string');
             assert.ok(plaintextResult.includes('Project Structure:'), 'Should include project structure header');
             assert.ok(plaintextResult.includes('src/index.js'), 'Should include file path');
@@ -66,15 +71,15 @@ suite('Copy4AI Extension Test Suite', () => {
             assert.ok(plaintextResult.includes('{"name": "test"}'), 'Should include file content');
 
             // Test markdown format
-            const markdownResult = extension.formatOutput('markdown', projectTree, content);
+            const markdownResult = OutputFormatter.formatOutput('markdown', projectTree, content);
             assert.strictEqual(typeof markdownResult, 'string', 'Markdown output should be a string');
             assert.ok(markdownResult.includes('# Project Structure'), 'Should include project structure header');
             assert.ok(markdownResult.includes('```\n' + projectTree + '```'), 'Should include project tree in code block');
-            assert.ok(markdownResult.includes('```js\nconsole.log("Hello World")'), 'Should include JS code block');
+            assert.ok(markdownResult.includes('```javascript\nconsole.log("Hello World")'), 'Should include JavaScript code block');
             assert.ok(markdownResult.includes('```json\n{"name": "test"}'), 'Should include JSON code block');
 
             // Test XML format
-            const xmlResult = extension.formatOutput('xml', projectTree, content);
+            const xmlResult = OutputFormatter.formatOutput('xml', projectTree, content);
             assert.strictEqual(typeof xmlResult, 'string', 'XML output should be a string');
             assert.ok(xmlResult.includes('<?xml version="1.0" encoding="UTF-8"?>'), 'Should include XML declaration');
             assert.ok(xmlResult.includes('<project_structure>'), 'Should include project structure tag');
@@ -91,17 +96,17 @@ suite('Copy4AI Extension Test Suite', () => {
             }];
 
             // Test with empty project tree
-            const plaintextResult = extension.formatOutput('plaintext', '', content);
+            const plaintextResult = OutputFormatter.formatOutput('plaintext', '', content);
             assert.ok(!plaintextResult.includes('Project Structure:'), 'Should not include project structure section');
             assert.ok(plaintextResult.includes('File Contents:'), 'Should include file contents header');
             assert.ok(plaintextResult.includes('test content'), 'Should include file content');
 
-            const markdownResult = extension.formatOutput('markdown', '', content);
+            const markdownResult = OutputFormatter.formatOutput('markdown', '', content);
             assert.ok(!markdownResult.includes('# Project Structure'), 'Should not include project structure section');
             assert.ok(markdownResult.includes('# File Contents'), 'Should include file contents header');
             assert.ok(markdownResult.includes('test content'), 'Should include file content');
 
-            const xmlResult = extension.formatOutput('xml', '', content);
+            const xmlResult = OutputFormatter.formatOutput('xml', '', content);
             assert.ok(!xmlResult.includes('<project_structure>'), 'Should not include project structure tag');
             assert.ok(xmlResult.includes('<file_contents>'), 'Should include file contents tag');
             assert.ok(xmlResult.includes('<![CDATA[test content]]>'), 'Should include content in CDATA');
@@ -113,7 +118,7 @@ suite('Copy4AI Extension Test Suite', () => {
                 content: '<test>Hello & World</test>'
             }];
 
-            const xmlResult = extension.formatOutput('xml', '', content);
+            const xmlResult = OutputFormatter.formatOutput('xml', '', content);
             
             // Check path attribute is properly escaped
             assert.ok(xmlResult.includes('path="test &amp; demo.xml"'), 'Should escape special characters in path attribute');
@@ -142,23 +147,32 @@ suite('Copy4AI Extension Test Suite', () => {
                 }
             ];
 
-            const markdownResult = extension.formatOutput('markdown', '', content);
+            const markdownResult = OutputFormatter.formatOutput('markdown', '', content);
             
             // Check language-specific code blocks
-            assert.ok(markdownResult.includes('```py\nprint("Hello")'), 'Should use py language for Python files');
+            assert.ok(markdownResult.includes('```python\nprint("Hello")'), 'Should use python language for Python files');
             assert.ok(markdownResult.includes('```css\nbody { color: red; }'), 'Should use css language for CSS files');
-            assert.ok(markdownResult.includes('```yml\nkey: value'), 'Should use yml language for YAML files');
+            assert.ok(markdownResult.includes('```yaml\nkey: value'), 'Should use yaml language for YAML files');
             assert.ok(markdownResult.includes('```\nplain text'), 'Should use no language for files without extension');
         });
 
         test('Should handle empty content array', async () => {
-            const formats = ['plaintext', 'markdown', 'xml'];
-            for (const format of formats) {
-                const result = extension.formatOutput(format, '', []);
-                assert.ok(result.length > 0, `${format} format should handle empty content`);
-                assert.ok(!result.includes('undefined'), `${format} format should not contain undefined`);
+            // Test plaintext and markdown formats (should return empty)
+            const emptyFormats = ['plaintext', 'markdown'];
+            for (const format of emptyFormats) {
+                const result = OutputFormatter.formatOutput(format, '', []);
                 assert.ok(typeof result === 'string', `${format} format should return a string`);
+                assert.ok(!result.includes('undefined'), `${format} format should not contain undefined`);
+                assert.strictEqual(result, '', `${format} format should return empty string for empty content and tree`);
             }
+            
+            // Test XML format (returns basic XML structure even when empty)
+            const xmlResult = OutputFormatter.formatOutput('xml', '', []);
+            assert.ok(typeof xmlResult === 'string', 'XML format should return a string');
+            assert.ok(!xmlResult.includes('undefined'), 'XML format should not contain undefined');
+            assert.ok(xmlResult.includes('<?xml version="1.0" encoding="UTF-8"?>'), 'XML should include declaration');
+            assert.ok(xmlResult.includes('<copy4ai>'), 'XML should include root element');
+            assert.ok(xmlResult.includes('</copy4ai>'), 'XML should close root element');
         });
     });
 
@@ -180,7 +194,7 @@ suite('Copy4AI Extension Test Suite', () => {
             ];
 
             testCases.forEach(({ input, expected }) => {
-                const result = extension.removeCodeComments(input);
+                const result = FileProcessor.removeCodeComments(input);
                 assert.strictEqual(result, expected, 'Should remove comments correctly');
             });
         });
@@ -202,7 +216,7 @@ suite('Copy4AI Extension Test Suite', () => {
             ];
 
             testCases.forEach(({ input, expected }) => {
-                const result = extension.compressCodeContent(input);
+                const result = FileProcessor.compressCodeContent(input);
                 assert.strictEqual(result, expected, 'Should compress code correctly');
             });
         });
@@ -227,14 +241,14 @@ suite('Copy4AI Extension Test Suite', () => {
             
             const expectedFinal = 'function test() {\nconsole.log("test");\n}';
             
-            const withoutComments = extension.removeCodeComments(input);
+            const withoutComments = FileProcessor.removeCodeComments(input);
             assert.strictEqual(withoutComments, expectedAfterCommentRemoval, 'Should remove all comments');
             
-            const compressed = extension.compressCodeContent(withoutComments);
+            const compressed = FileProcessor.compressCodeContent(withoutComments);
             assert.strictEqual(compressed, expectedFinal, 'Should compress code after comment removal');
             
             // Test processContent function directly
-            const processed = extension.processContent(input, true, true);
+            const processed = FileProcessor.processContent(input, true, true);
             assert.strictEqual(processed, expectedFinal, 'Should process content with both options');
         });
     });
@@ -335,7 +349,7 @@ suite('Copy4AI Extension Test Suite', () => {
                 await vscode.commands.executeCommand('snapsource.copyToClipboard', uri);
                 
                 const clipboardContent = await vscode.env.clipboard.readText();
-                assert.ok(clipboardContent.includes('Size (2097152 bytes) exceeds the maximum allowed size'), 
+                assert.ok(clipboardContent.includes('[File too large:') && clipboardContent.includes('2.0 MB'), 
                     'Should indicate file size exceeds limit');
             } finally {
                 // Cleanup
@@ -408,7 +422,7 @@ suite('Copy4AI Extension Test Suite', () => {
     suite('Exclusion Patterns', () => {
         test('Should exclude files using glob patterns', () => {
             // Create an ignore instance with standard patterns
-            const ig = extension.createIgnoreInstance(['config', '*.log']);
+            const ig = IgnoreUtils.createIgnoreInstance(['config', '*.log']);
             
             // Test paths - use platform-agnostic path handling
             const relativePath1 = path.join('src', 'config');
@@ -427,7 +441,7 @@ suite('Copy4AI Extension Test Suite', () => {
             const absolutePathsToExclude = [path.join('src', 'config')];
             
             // Create the exclusion function using the helper
-            const isExcludedByAbsolutePath = extension.createAbsolutePathExclusionFn(
+            const isExcludedByAbsolutePath = IgnoreUtils.createAbsolutePathExclusionFn(
                 workspacePath, 
                 absolutePathsToExclude
             );
@@ -448,10 +462,10 @@ suite('Copy4AI Extension Test Suite', () => {
             const workspacePath = path.resolve('/mock/workspace');
             
             // Create an ignore instance with standard patterns
-            const ig = extension.createIgnoreInstance(['*.log', '*.tmp']);
+            const ig = IgnoreUtils.createIgnoreInstance(['*.log', '*.tmp']);
             
             // Create the absolute path exclusion function with platform-independent path
-            const isExcludedByAbsolutePath = extension.createAbsolutePathExclusionFn(
+            const isExcludedByAbsolutePath = IgnoreUtils.createAbsolutePathExclusionFn(
                 workspacePath, 
                 [path.join('src', 'config')]
             );

@@ -2,7 +2,7 @@
   "name": "snapsource",
   "displayName": "Copy4AI - Copy Project Code to ChatGPT",
   "description": "Easily copy file and folder contents with project tree structure to clipboard for AI (LLM/ChatGPT/Claude/...) context.",
-  "version": "1.0.21",
+  "version": "1.1.0",
   "publisher": "LeonKohli",
   "author": {
     "name": "Leon Kohli"
@@ -44,7 +44,7 @@
   "preview": false,
   "pricing": "Free",
   "activationEvents": [],
-  "main": "./extension.js",
+  "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
@@ -136,7 +136,10 @@
           },
           "copy4ai.excludePatterns": {
             "type": "array",
-            "default": ["node_modules", "*.log"],
+            "default": [
+              "node_modules",
+              "*.log"
+            ],
             "items": {
               "type": "string"
             },
@@ -196,7 +199,10 @@
             "description": "LLM model to use for token count and cost estimation"
           },
           "copy4ai.maxTokens": {
-            "type": ["number", "null"],
+            "type": [
+              "number",
+              "null"
+            ],
             "default": null,
             "description": "Maximum number of tokens allowed before warning. Set to 0 or null to disable warning. If not set, it will use the model's default max tokens."
           },
@@ -215,24 +221,26 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "npm run lint",
-    "lint": "eslint .",
-    "pretest": "npm run lint",
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
     "test": "vscode-test --config ./vscode-test.config.js"
   },
   "devDependencies": {
-    "@types/glob": "^7.1.3",
     "@types/mocha": "^10.0.7",
     "@types/node": "20.x",
+    "@types/vscode": "^1.89.0",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
+    "@vscode/test-cli": "^0.0.10",
     "@vscode/test-electron": "^2.3.8",
     "eslint": "^8.57.0",
-    "glob": "^7.1.6",
     "mocha": "^10.3.0",
     "typescript": "^5.4.5"
   },
   "dependencies": {
-    "@types/vscode": "^1.89.0",
-    "@vscode/test-cli": "^0.0.10",
     "ignore": "^5.3.1",
     "isbinaryfile": "^5.0.0",
     "llm-cost": "^1.0.5"

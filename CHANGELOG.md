@@ -2,6 +2,42 @@
 
 All notable changes to the "Copy4AI" extension will be documented in this file.
 
+## [1.1.0] - 2025-05-24
+
+### Changed
+- **Major refactoring**: Migrated from JavaScript to TypeScript for better type safety and maintainability
+- Restructured codebase into modular architecture with dedicated utility classes:
+  - `ConfigurationService` for centralized configuration management
+  - `FileProcessor` for file processing and encoding detection
+  - `ProjectTreeGenerator` for project structure generation
+  - `OutputFormatter` for different output formats (markdown, XML, plaintext)
+  - `IgnoreUtils` for handling ignore patterns and exclusions
+  - `TokenCounter` for token counting and cost estimation
+- Improved TypeScript configuration with strict type checking
+- Enhanced ESLint configuration for TypeScript support
+- Updated build process to compile TypeScript to JavaScript
+- All tests passing with the new TypeScript architecture
+
+### Fixed
+- Fixed file extension handling for files without extensions (now properly shows no language in markdown code blocks)
+- Updated test expectations to match the more accurate language mapping (e.g., 'javascript' instead of 'js')
+- Fixed VS Code launch configuration paths for debugging
+- Corrected dependency categorization in package.json
+
+### Removed
+- Cleaned up orphaned development files (`CLAUDE.md`, `vsc-extension-quickstart.md`)
+- Removed outdated test configuration files (`.vscode-test.js`, `.vscode-test.mjs`)
+- Removed unused dependencies (`@types/glob`, `glob`)
+- Cleaned up unused test files (`test-file.js`, `sample.js`)
+
+### Technical Improvements
+- Better separation of concerns with dedicated service classes
+- Improved error handling and type safety
+- Enhanced code maintainability and extensibility
+- Cleaner API design with well-defined interfaces
+- Optimized dependency structure with proper dev/runtime separation
+- Repository cleanup with removal of legacy and orphaned files
+
 ## [1.0.21] - 2025-05-24
 
 ### Added

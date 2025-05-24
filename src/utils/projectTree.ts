@@ -1,0 +1,127 @@
+import * as fs from 'fs/promises';
+import * as path from 'path';
+
+export class ProjectTreeGenerator {
+    
+    public static async generateProjectTree(
+        dir: string,
+        ig: any,
+        maxDepth: number,
+        currentDepth: number = 0,
+        prefix: string = '',
+        isExcludedByAbsolutePath: (filePath: string) => boolean
+    ): Promise<string> {
+        if (currentDepth > maxDepth) {
+            return '';
+        }
+
+        try {
+            const files = await fs.readdir(dir);
+            const visibleFiles: string[] = [];
+
+            // Filter files based on ignore patterns and exclusions
+            for (const file of files) {
+                const filePath = path.join(dir, file);
+                const relativePath = path.relative(dir, filePath);
+
+                let isIgnored = false;
+                let isExcludedByPath = false;
+
+                try {
+                    isIgnored = ig.ignores(relativePath);
+                } catch (error) {
+                    console.error(`Error checking ignore pattern for ${relativePath}: ${error}`);
+                    isIgnored = false;
+                }
+
+                try {
+                    isExcludedByPath = isExcludedByAbsolutePath(filePath);
+                } catch (error) {
+                    console.error(`Error checking path exclusion for ${filePath}: ${error}`);
+                    isExcludedByPath = false;
+                }
+
+                if (!isIgnored && !isExcludedByPath) {
+                    visibleFiles.push(file);
+                }
+            }
+
+            // Return empty string if no visible files
+            if (visibleFiles.length === 0) {
+                return '';
+            }
+
+            // Sort files: directories first, then files, both alphabetically
+            const sortedFiles = await this.sortFiles(dir, visibleFiles);
+            
+            let result = '';
+            for (let i = 0; i < sortedFiles.length; i++) {
+                const file = sortedFiles[i];
+                const filePath = path.join(dir, file);
+                const isLast = i === sortedFiles.length - 1;
+                const connector = isLast ? '└── ' : '├── ';
+                const newPrefix = isLast ? '    ' : '│   ';
+
+                result += prefix + connector + file + '\n';
+
+                try {
+                    const stats = await fs.stat(filePath);
+                    if (stats.isDirectory()) {
+                        const subTree = await this.generateProjectTree(
+                            filePath,
+                            ig,
+                            maxDepth,
+                            currentDepth + 1,
+                            prefix + newPrefix,
+                            isExcludedByAbsolutePath
+                        );
+                        result += subTree;
+                    }
+                } catch (error) {
+                    console.error(`Error processing ${filePath}:`, error);
+                    // Continue with other files
+                }
+            }
+
+            return result;
+        } catch (error) {
+            console.error(`Error reading directory ${dir}:`, error);
+            return '';
+        }
+    }
+
+    private static async sortFiles(dir: string, files: string[]): Promise<string[]> {
+        const fileInfo: Array<{ name: string; isDirectory: boolean }> = [];
+
+        for (const file of files) {
+            try {
+                const filePath = path.join(dir, file);
+                const stats = await fs.stat(filePath);
+                fileInfo.push({
+                    name: file,
+                    isDirectory: stats.isDirectory()
+                });
+            } catch (error) {
+                console.error(`Error getting stats for ${file}:`, error);
+                // Treat as file if we can't determine
+                fileInfo.push({
+                    name: file,
+                    isDirectory: false
+                });
+            }
+        }
+
+        // Sort: directories first, then files, both alphabetically
+        return fileInfo
+            .sort((a, b) => {
+                if (a.isDirectory && !b.isDirectory) {
+                    return -1;
+                }
+                if (!a.isDirectory && b.isDirectory) {
+                    return 1;
+                }
+                return a.name.localeCompare(b.name);
+            })
+            .map(item => item.name);
+    }
+} 
