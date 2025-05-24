@@ -38,6 +38,8 @@ export class TokenCounter {
             let message = `Copied to clipboard: ${format} format, ${inputTokens} tokens, $${cost.toFixed(4)} est. cost`;
 
             if (enableWarning) {
+                // Use custom limit if set, otherwise fall back to model's context window limit
+                // This helps users avoid hitting API limits or performance issues with large inputs
                 const tokenLimit = maxTokens !== null ? maxTokens : (MODEL_MAX_TOKENS[model as keyof typeof MODEL_MAX_TOKENS] || 0);
                 
                 if (tokenLimit > 0 && inputTokens > tokenLimit) {
@@ -49,6 +51,7 @@ export class TokenCounter {
                         'Reduce Token Count'
                     );
                     
+                    // Provide actionable solution: direct link to compression settings
                     if (selection === 'Reduce Token Count') {
                         await vscode.commands.executeCommand(
                             'workbench.action.openSettings',
@@ -63,7 +66,8 @@ export class TokenCounter {
             }
         } catch (error) {
             console.error('Error in token counting:', error);
-            // Still show success message even if token counting fails
+            // Graceful fallback: show basic success message if token counting fails
+            // Don't let token counting errors prevent the core functionality from working
             vscode.window.showInformationMessage(`Copied to clipboard: ${format} format`);
         }
     }

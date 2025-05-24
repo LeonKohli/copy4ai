@@ -11,6 +11,7 @@ export class ProjectTreeGenerator {
         prefix: string = '',
         isExcludedByAbsolutePath: (filePath: string) => boolean
     ): Promise<string> {
+        // Prevent infinite recursion and excessive memory usage on deep directory structures
         if (currentDepth > maxDepth) {
             return '';
         }
@@ -19,7 +20,6 @@ export class ProjectTreeGenerator {
             const files = await fs.readdir(dir);
             const visibleFiles: string[] = [];
 
-            // Filter files based on ignore patterns and exclusions
             for (const file of files) {
                 const filePath = path.join(dir, file);
                 const relativePath = path.relative(dir, filePath);
@@ -46,12 +46,10 @@ export class ProjectTreeGenerator {
                 }
             }
 
-            // Return empty string if no visible files
             if (visibleFiles.length === 0) {
                 return '';
             }
 
-            // Sort files: directories first, then files, both alphabetically
             const sortedFiles = await this.sortFiles(dir, visibleFiles);
             
             let result = '';
@@ -59,6 +57,9 @@ export class ProjectTreeGenerator {
                 const file = sortedFiles[i];
                 const filePath = path.join(dir, file);
                 const isLast = i === sortedFiles.length - 1;
+                
+                // Tree drawing characters follow standard CLI conventions
+                // ├── for intermediate items, └── for last items in a branch
                 const connector = isLast ? '└── ' : '├── ';
                 const newPrefix = isLast ? '    ' : '│   ';
 
@@ -79,7 +80,6 @@ export class ProjectTreeGenerator {
                     }
                 } catch (error) {
                     console.error(`Error processing ${filePath}:`, error);
-                    // Continue with other files
                 }
             }
 
@@ -103,7 +103,6 @@ export class ProjectTreeGenerator {
                 });
             } catch (error) {
                 console.error(`Error getting stats for ${file}:`, error);
-                // Treat as file if we can't determine
                 fileInfo.push({
                     name: file,
                     isDirectory: false
@@ -111,7 +110,8 @@ export class ProjectTreeGenerator {
             }
         }
 
-        // Sort: directories first, then files, both alphabetically
+        // Standard file explorer behavior: directories first, then files, both alphabetical
+        // This matches user expectations from most operating systems and file managers
         return fileInfo
             .sort((a, b) => {
                 if (a.isDirectory && !b.isDirectory) {

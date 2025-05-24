@@ -50,6 +50,8 @@ export interface ProcessFileOptions {
     isExcludedByAbsolutePath: (filePath: string) => boolean;
 }
 
+// Supported LLM models for token counting and cost estimation
+// Models are selected based on popularity and reliable token counting support
 export const SUPPORTED_MODELS = [
     'gpt-4',
     'gpt-4o', 
@@ -63,6 +65,8 @@ export type SupportedModel = typeof SUPPORTED_MODELS[number];
 export const OUTPUT_FORMATS = ['plaintext', 'markdown', 'xml'] as const;
 export type OutputFormat = typeof OUTPUT_FORMATS[number];
 
+// Token limits based on official model specifications
+// Used for warning users before they exceed context windows or hit API limits
 export const MODEL_MAX_TOKENS: Record<SupportedModel, number> = {
     // eslint-disable-next-line @typescript-eslint/naming-convention
     'gpt-4': 8192,

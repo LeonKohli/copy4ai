@@ -2,7 +2,6 @@ import * as vscode from 'vscode';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
-// Import our modular utilities
 import { Copy4AIOptions, FileContent, ProcessFileOptions, ProgressReporter, CancellationToken } from './types';
 import { ConfigurationService } from './utils/configuration';
 import { FileProcessor } from './utils/fileProcessor';
@@ -26,17 +25,16 @@ export class Copy4AIService {
             try {
                 progress.report({ increment: 0, message: "Initializing..." });
                 
-                // Get configuration
                 const config = ConfigurationService.getConfiguration();
                 const excludeConfig = ConfigurationService.getExcludeConfig();
                 
-                // Override configuration with options
+                // Options override global configuration for command-specific behavior
+                // This allows different commands to use different settings without changing user preferences
                 const includeProjectTree = options.projectTreeOnly ? true : 
                                          (options.includeProjectTree !== undefined ? 
                                          options.includeProjectTree : 
                                          config.includeProjectTree);
                 
-                // Determine items to process
                 const itemsToProcess = uris && uris.length > 0 ? uris : (uri ? [uri] : []);
                 
                 if (itemsToProcess.length === 0) {
@@ -50,23 +48,22 @@ export class Copy4AIService {
                     throw new Error('No workspace folder found');
                 }
                 
-                // Create ignore instance
                 const ig = IgnoreUtils.createIgnoreInstance(excludeConfig.patterns, config.ignoreDotFiles);
                 
                 if (config.ignoreGitIgnore) {
                     await IgnoreUtils.addGitIgnoreRules(workspaceFolder.uri.fsPath, ig);
                 }
                 
-                // Create absolute path exclusion function
                 const isExcludedByAbsolutePath = IgnoreUtils.createAbsolutePathExclusionFn(
                     workspaceFolder.uri.fsPath,
                     excludeConfig.paths
                 );
                 
-                // Determine project root
                 let projectRootPath = workspaceFolder.uri.fsPath;
                 let projectRootName = '';
                 
+                // Allow using selected folder as root for more focused project views
+                // Useful when working with large monorepos or when sharing specific subsections
                 if (options.useSelectedFolderAsRoot && itemsToProcess[0]) {
                     try {
                         const stats = await fs.stat(itemsToProcess[0].fsPath);
@@ -79,7 +76,6 @@ export class Copy4AIService {
                     }
                 }
                 
-                // Generate project tree
                 progress.report({ increment: 15, message: "Generating project tree..." });
                 let projectTree = '';
                 if (includeProjectTree) {
@@ -99,7 +95,6 @@ export class Copy4AIService {
                 
                 let processedContent: FileContent[] = [];
                 
-                // Process files if not project tree only
                 if (!options.projectTreeOnly) {
                     progress.report({ increment: 20, message: "Processing files..." });
                     
@@ -146,7 +141,6 @@ export class Copy4AIService {
                     }
                 }
                 
-                // Format output
                 progress.report({ increment: 10, message: "Formatting output..." });
                 
                 let formattedContent: string;
@@ -163,11 +157,10 @@ export class Copy4AIService {
                     );
                 }
                 
-                // Copy to clipboard
                 progress.report({ increment: 5, message: "Copying to clipboard..." });
                 await vscode.env.clipboard.writeText(formattedContent);
                 
-                // Show token count if enabled
+                // Optional token counting helps users understand LLM input costs and limits
                 if (config.enableTokenCounting && !options.projectTreeOnly) {
                     progress.report({ increment: 5, message: "Counting tokens..." });
                     await TokenCounter.showTokenInfo(
@@ -191,7 +184,6 @@ export class Copy4AIService {
 }
 
 export function activate(context: vscode.ExtensionContext): void {
-    // Register copy to clipboard command
     const copyToClipboardCommand = vscode.commands.registerCommand(
         'snapsource.copyToClipboard',
         async (uri?: vscode.Uri, uris?: vscode.Uri[]) => {
@@ -203,19 +195,16 @@ export function activate(context: vscode.ExtensionContext): void {
         }
     );
     
-    // Register copy project structure command
     const copyProjectStructureCommand = vscode.commands.registerCommand(
         'snapsource.copyProjectStructure',
         async (uri?: vscode.Uri) => {
             try {
                 let targetUri = uri;
                 
-                // Validate workspace
                 if (!targetUri && (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0)) {
                     throw new Error('No workspace open. Please open a workspace to copy project structure.');
                 }
                 
-                // Use workspace root if no URI provided
                 if (!targetUri && vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
                     targetUri = vscode.workspace.workspaceFolders[0].uri;
                 }
@@ -231,7 +220,6 @@ export function activate(context: vscode.ExtensionContext): void {
         }
     );
     
-    // Register toggle project tree command
     const toggleProjectTreeCommand = vscode.commands.registerCommand(
         'snapsource.toggleProjectTree',
         async () => {
@@ -244,7 +232,6 @@ export function activate(context: vscode.ExtensionContext): void {
         }
     );
     
-    // Register toggle dot files command
     const toggleDotFilesCommand = vscode.commands.registerCommand(
         'snapsource.toggleDotFiles',
         async () => {
@@ -257,7 +244,6 @@ export function activate(context: vscode.ExtensionContext): void {
         }
     );
     
-    // Add commands to subscriptions
     context.subscriptions.push(
         copyToClipboardCommand,
         copyProjectStructureCommand,
@@ -266,9 +252,7 @@ export function activate(context: vscode.ExtensionContext): void {
     );
 }
 
-export function deactivate(): void {
-    // Cleanup if needed
-}
+export function deactivate(): void {}
 
 // Export modern API for testing and external use
 export { OutputFormatter } from './utils/formatters';

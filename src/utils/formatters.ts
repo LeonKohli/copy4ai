@@ -88,6 +88,7 @@ export class OutputFormatter {
             output += '  <file_contents>\n';
             for (const file of content) {
                 output += `    <file path="${this.escapeXML(file.path)}">\n`;
+                // CDATA prevents XML parsing issues with code that contains <, >, & characters
                 output += '      <![CDATA[' + file.content + ']]>\n';
                 output += '    </file>\n';
             }
@@ -100,15 +101,15 @@ export class OutputFormatter {
 
     private static getFileExtension(filePath: string): string {
         const parts = filePath.split('.');
-        // If there's no dot in the filename, or the dot is at the beginning (like .gitignore), 
-        // there's no extension
+        // Edge case: .gitignore, .env files have no extension despite containing dots
         if (parts.length <= 1 || parts[parts.length - 1] === '') {
             return '';
         }
         
         const ext = parts.pop()?.toLowerCase();
         
-        // Map common extensions to syntax highlighting identifiers
+        // Extension mapping optimized for syntax highlighting in Markdown viewers
+        // Maps file extensions to language identifiers recognized by most syntax highlighters
         const extensionMap: Record<string, string> = {
             'js': 'javascript',
             'ts': 'typescript',
@@ -143,6 +144,8 @@ export class OutputFormatter {
     }
 
     private static escapeXML(unsafe: string): string {
+        // XML character escaping per W3C specification
+        // See: https://www.w3.org/TR/xml/#sec-predefined-ent
         return unsafe
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')

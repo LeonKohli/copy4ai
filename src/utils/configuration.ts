@@ -2,11 +2,10 @@ import * as vscode from 'vscode';
 import { Copy4AIConfiguration, ExcludeConfig } from '../types';
 
 export class ConfigurationService {
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    private static readonly CONFIG_SECTION = 'copy4ai';
+    private static readonly configSection = 'copy4ai';
 
     public static getConfiguration(): Copy4AIConfiguration {
-        const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);
+        const config = vscode.workspace.getConfiguration(this.configSection);
         
         return {
             ignoreGitIgnore: config.get('ignoreGitIgnore', true),
@@ -27,18 +26,18 @@ export class ConfigurationService {
     }
 
     public static getExcludeConfig(): ExcludeConfig {
-        const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);
+        const config = vscode.workspace.getConfiguration(this.configSection);
         const excludePaths = config.get<string[]>('excludePaths');
         const excludePatterns = config.get<string[]>('excludePatterns');
 
-        // Handle legacy configuration migration
+        // Backward compatibility: handle both new structured config and legacy flat arrays
+        // This prevents breaking existing user configurations during extension updates
         if (Array.isArray(excludePaths) || Array.isArray(excludePatterns)) {
             return {
                 paths: Array.isArray(excludePaths) ? excludePaths : [],
                 patterns: Array.isArray(excludePatterns) ? excludePatterns : ['node_modules', '*.log']
             };
         } else {
-            // Fallback to old format for backward compatibility
             const oldExcludePatterns = config.get<string[]>('excludePatterns');
             return {
                 paths: [],
@@ -52,7 +51,7 @@ export class ConfigurationService {
         value: any,
         target: vscode.ConfigurationTarget = vscode.ConfigurationTarget.Global
     ): Promise<void> {
-        const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);
+        const config = vscode.workspace.getConfiguration(this.configSection);
         await config.update(key, value, target);
     }
 

@@ -14,17 +14,14 @@ export class FileProcessor {
         try {
             const relativePath = path.relative(rootPath, filePath);
             
-            // Check ignore patterns
             if (ig.ignores(relativePath)) {
                 return null;
             }
             
-            // Check absolute path exclusions
             if (options.isExcludedByAbsolutePath(filePath)) {
                 return null;
             }
-            
-            // Check file size
+
             const stats = await fs.stat(filePath);
             if (stats.size > options.maxFileSize) {
                 return {
@@ -32,8 +29,7 @@ export class FileProcessor {
                     content: `[File too large: ${this.formatFileSize(stats.size)} > ${this.formatFileSize(options.maxFileSize)}]`
                 };
             }
-            
-            // Check if file is binary
+
             try {
                 const isBinary = await isBinaryFile(filePath);
                 if (isBinary) {
@@ -46,20 +42,21 @@ export class FileProcessor {
                 console.error(`Error checking if file is binary: ${filePath}: ${error}`);
             }
             
-            // Additional check for files that might have encoding issues
+            // Proactive encoding detection prevents the entire extension from crashing
+            // when encountering UTF-16/UTF-32 files, which would otherwise cause
+            // fs.readFile to throw ERR_ENCODING_INVALID_ENCODED_DATA and halt processing
             try {
-                // Read a small sample to detect encoding issues early
                 const fileHandle = await fs.open(filePath, 'r');
                 const sampleBuffer = Buffer.alloc(1024);
                 const { bytesRead } = await fileHandle.read(sampleBuffer, 0, 1024, 0);
                 await fileHandle.close();
                 const actualSample = sampleBuffer.subarray(0, bytesRead);
                 
-                // Check for UTF-16 BOM or other non-UTF-8 indicators
                 if (actualSample.length >= 2) {
                     const firstBytes = actualSample.subarray(0, 4);
                     
-                    // UTF-16 LE BOM: FF FE, UTF-16 BE BOM: FE FF, etc.
+                    // BOM detection based on Unicode standard specifications
+                    // See: https://unicode.org/faq/utf_bom.html#bom4
                     if ((firstBytes[0] === 0xFF && firstBytes[1] === 0xFE) ||
                         (firstBytes[0] === 0xFE && firstBytes[1] === 0xFF) ||
                         (firstBytes.length >= 4 && firstBytes[0] === 0xFF && firstBytes[1] === 0xFE && firstBytes[2] === 0x00 && firstBytes[3] === 0x00) ||
@@ -70,11 +67,12 @@ export class FileProcessor {
                         };
                     }
                     
-                    // Check for high ratio of null bytes (common in UTF-16 without BOM)
+                    // Heuristic: UTF-16 without BOM typically has many null bytes
+                    // This prevents treating UTF-16 text files as valid UTF-8
                     const nullCount = actualSample.filter(byte => byte === 0).length;
                     const nullRatio = nullCount / actualSample.length;
                     
-                    if (nullRatio > 0.1) { // More than 10% null bytes suggests UTF-16 or binary
+                    if (nullRatio > 0.1) {
                         return {
                             path: relativePath,
                             content: '[File appears to have unsupported encoding. Please convert to UTF-8 for inclusion.]'
@@ -83,14 +81,10 @@ export class FileProcessor {
                 }
             } catch (error) {
                 console.error(`Error during encoding detection for ${filePath}: ${error}`);
-                // Continue with UTF-8 reading attempt
             }
             
             try {
-                // Read file content as UTF-8
                 let content = await fs.readFile(filePath, 'utf8');
-                
-                // Apply transformations
                 content = this.processContent(content, options.removeComments, options.compressCode);
                 
                 return {
@@ -98,7 +92,8 @@ export class FileProcessor {
                     content
                 };
             } catch (error) {
-                // Handle encoding errors gracefully
+                // Graceful degradation: return error info instead of crashing the entire operation
+                // This ensures other files can still be processed even if one file fails
                 if (error instanceof Error && 'code' in error && error.code === 'ERR_ENCODING_INVALID_ENCODED_DATA') {
                     return {
                         path: relativePath,
@@ -106,14 +101,11 @@ export class FileProcessor {
                     };
                 }
                 
-                // Re-throw other errors
                 throw error;
             }
             
         } catch (error) {
             console.error(`Error processing file ${filePath}:`, error);
-            
-            // Return error info instead of failing completely
             return {
                 path: path.relative(rootPath, filePath),
                 content: `[Error reading file: ${error instanceof Error ? error.message : 'Unknown error'}]`
@@ -156,10 +148,11 @@ export class FileProcessor {
 
     
     public static removeCodeComments(content: string): string {
-        // Enhanced comment removal for better handling
         return content
-            .replace(/\/\*[\s\S]*?\*\//g, '') // Remove block comments first
-            .replace(/\/\/.*$/gm, ''); // Then remove line comments
+            // Order matters: block comments must be removed before line comments
+            // to handle cases like /* comment */ followed by // comment on same line
+            .replace(/\/\*[\s\S]*?\*\//g, '')
+            .replace(/\/\/.*$/gm, '');
     }
     
     public static compressCodeContent(content: string): string {
