@@ -62,43 +62,58 @@ jobs:
           path: '*.vsix'
           retention-days: 1  # Only needed temporarily
 
-  publish-marketplace:
+  publish:
     needs: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       
-      - name: Download Extension Package
-        uses: actions/download-artifact@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          name: vsix-package
+          node-version: '20'
 
-      - name: Validate Downloaded VSIX
-        run: |
-          if [ ! -f "${{ needs.build.outputs.vsix_path }}" ]; then
-            echo "Downloaded VSIX file missing!"
-            exit 1
-          fi
+      - name: Install dependencies
+        run: npm ci
+        env:
+          CI: true
+
+      - name: Publish to Open VSX Registry
+        uses: HaaLeo/publish-vscode-extension@v2
+        id: publishToOpenVSX
+        with:
+          pat: ${{ secrets.OPENVSX_TOKEN }}
 
       - name: Publish to Visual Studio Marketplace
-        uses: HaaLeo/publish-vscode-extension@v1.6.2
+        uses: HaaLeo/publish-vscode-extension@v2
         with:
           pat: ${{ secrets.VS_MARKETPLACE_TOKEN }}
           registryUrl: https://marketplace.visualstudio.com
-          extensionFile: ${{ needs.build.outputs.vsix_path }}
+          extensionFile: ${{ steps.publishToOpenVSX.outputs.vsixPath }}
 
   create-release:
-    needs: [build, publish-marketplace]
+    needs: [build, publish]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       
-      - name: Download Extension Package
-        uses: actions/download-artifact@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          name: vsix-package
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+        env:
+          CI: true
+
+      - name: Package Extension for Release
+        id: package_release
+        run: |
+          npx vsce package
+          echo "vsix_path=$(ls *.vsix)" >> $GITHUB_OUTPUT
 
       - name: Generate Release Notes
         id: release_notes
@@ -142,5 +157,5 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: Copy4AI ${{ github.ref_name }}
           body: ${{ steps.release_notes.outputs.notes }}
-          files: ${{ needs.build.outputs.vsix_path }}
+          files: ${{ steps.package_release.outputs.vsix_path }}
           
