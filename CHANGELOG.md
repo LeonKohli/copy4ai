@@ -2,6 +2,14 @@
 
 All notable changes to the "Copy4AI" extension will be documented in this file.
 
+## [1.1.1] - 2025-06-11
+
+### Fixed
+- **Performance improvement**: Fixed significant performance regression when processing directories with large ignored folders like `node_modules` (fixes #9)
+  - Added early directory exclusion checks to prevent reading contents of ignored directories
+  - Directories are now checked against ignore patterns before their contents are read
+  - This eliminates the 2-5 second delay users experienced when processing projects with large `node_modules` folders
+
 ## [1.1.0] - 2025-05-24
 
 ### Changed

@@ -9,14 +9,32 @@ export class ProjectTreeGenerator {
         maxDepth: number,
         currentDepth: number = 0,
         prefix: string = '',
-        isExcludedByAbsolutePath: (filePath: string) => boolean
+        isExcludedByAbsolutePath: (filePath: string) => boolean,
+        rootPath?: string
     ): Promise<string> {
         // Prevent infinite recursion and excessive memory usage on deep directory structures
         if (currentDepth > maxDepth) {
             return '';
         }
 
+        // Initialize rootPath on first call
+        if (!rootPath) {
+            rootPath = dir;
+        }
+
         try {
+            // Check if directory should be ignored before reading its contents
+            // This optimization prevents reading large ignored directories like node_modules
+            if (currentDepth > 0) {
+                const relativePath = path.relative(rootPath, dir);
+                if (relativePath && ig.ignores(relativePath)) {
+                    return '';
+                }
+                if (isExcludedByAbsolutePath(dir)) {
+                    return '';
+                }
+            }
+            
             const files = await fs.readdir(dir);
             const visibleFiles: string[] = [];
 
@@ -74,7 +92,8 @@ export class ProjectTreeGenerator {
                             maxDepth,
                             currentDepth + 1,
                             prefix + newPrefix,
-                            isExcludedByAbsolutePath
+                            isExcludedByAbsolutePath,
+                            rootPath
                         );
                         result += subTree;
                     }

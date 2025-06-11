@@ -122,6 +122,17 @@ export class FileProcessor {
         const results: FileContent[] = [];
         
         try {
+            // Check if the directory itself should be ignored before reading its contents
+            // This prevents unnecessary file system operations on large ignored directories
+            const relativeDirPath = path.relative(rootPath, dirPath);
+            if (relativeDirPath && ig.ignores(relativeDirPath)) {
+                return results;
+            }
+            
+            if (options.isExcludedByAbsolutePath(dirPath)) {
+                return results;
+            }
+            
             const files = await fs.readdir(dirPath);
             
             for (const file of files) {
