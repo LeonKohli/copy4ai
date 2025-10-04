@@ -13,8 +13,9 @@ export class FileProcessor {
     ): Promise<FileContent | null> {
         try {
             const relativePath = path.relative(rootPath, filePath);
+            const relativePosix = relativePath.split(path.sep).join('/');
             
-            if (ig.ignores(relativePath)) {
+            if (ig.ignores(relativePosix)) {
                 return null;
             }
             
@@ -125,7 +126,8 @@ export class FileProcessor {
             // Check if the directory itself should be ignored before reading its contents
             // This prevents unnecessary file system operations on large ignored directories
             const relativeDirPath = path.relative(rootPath, dirPath);
-            if (relativeDirPath && ig.ignores(relativeDirPath)) {
+            const relativeDirPosix = relativeDirPath.split(path.sep).join('/');
+            if (relativeDirPath && ig.ignores(relativeDirPosix)) {
                 return results;
             }
             

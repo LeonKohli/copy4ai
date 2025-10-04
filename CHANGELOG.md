@@ -2,6 +2,19 @@
 
 All notable changes to the "Copy4AI" extension will be documented in this file.
 
+## [1.2.0] - 2025-10-04
+
+### Added
+- Structured exclusion configuration via `copy4ai.exclude` object with `paths` and `patterns`. Takes precedence over legacy `excludePaths` / `excludePatterns`.
+
+### Changed
+- Project tree generation now uses `fs.readdir({ withFileTypes: true })` to reduce `fs.stat` calls and improve performance on large folders.
+- Ignore checks now evaluate root-relative, POSIX-normalized paths for consistent `node-ignore` behavior across platforms.
+- Removed explicit `activationEvents` from package.json; VS Code automatically activates for contributed commands.
+
+### Docs
+- README updated to document the preferred `copy4ai.exclude` configuration and precedence rules.
+
 ## [1.1.2] - 2025-10-04
 
 ### Fixed

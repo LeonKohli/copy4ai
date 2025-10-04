@@ -156,15 +156,24 @@ If you have any feedback or would like to contribute to the development of Copy4
 
 ### Exclusion Configuration
 
-The exclusion settings provide precise control over what files and directories are excluded:
+The exclusion settings provide precise control over what files and directories are excluded. Preferred is the structured `copy4ai.exclude` object; legacy keys are still supported.
 
 ```json
+// Preferred (structured)
+"copy4ai.exclude": {
+  "paths": ["src/config", "vendor/unwanted-package"],
+  "patterns": ["node_modules", "*.log", "*.tmp", "build/**"]
+}
+
+// Legacy (still supported)
 "copy4ai.excludePaths": ["src/config", "vendor/unwanted-package"],
 "copy4ai.excludePatterns": ["node_modules", "*.log", "*.tmp", "build/**"]
 ```
 
-- **excludePaths**: Array of absolute paths relative to workspace root. These are exact path matches that will exclude specific directories or files regardless of their name. This solves the problem of excluding directories with common names (like "config") in specific locations while keeping others.
-- **excludePatterns**: Array of standard glob patterns for more general exclusions.
+- **exclude.paths** / **excludePaths**: Absolute paths relative to workspace root. These are exact path matches that will exclude specific directories or files regardless of their name. This solves the problem of excluding directories with common names (like "config") in specific locations while keeping others.
+- **exclude.patterns** / **excludePatterns**: Standard glob patterns for more general exclusions.
+
+Note: If `copy4ai.exclude` is set, it takes precedence over `copy4ai.excludePaths` / `copy4ai.excludePatterns`.
 
 ## 🔍 Output Formats
 
