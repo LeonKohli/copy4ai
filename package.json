@@ -2,7 +2,7 @@
   "name": "snapsource",
   "displayName": "Copy4AI - Copy Project Code to ChatGPT",
   "description": "Easily copy file and folder contents with project tree structure to clipboard for AI (LLM/ChatGPT/Claude/...) context.",
-  "version": "1.1.2",
+  "version": "1.2.0",
   "publisher": "LeonKohli",
   "author": {
     "name": "Leon Kohli"
@@ -43,7 +43,7 @@
   ],
   "preview": false,
   "pricing": "Free",
-  "activationEvents": [],
+  
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
@@ -109,6 +109,35 @@
       {
         "title": "Copy4AI",
         "properties": {
+          "copy4ai.exclude": {
+            "type": "object",
+            "default": {
+              "paths": [],
+              "patterns": [
+                "node_modules",
+                "*.log"
+              ]
+            },
+            "markdownDescription": "Structured exclusion configuration. Preferred over `copy4ai.excludePaths`/`copy4ai.excludePatterns`. If set, it takes precedence.",
+            "properties": {
+              "paths": {
+                "type": "array",
+                "items": { "type": "string" },
+                "description": "Absolute paths relative to workspace root to exclude (e.g., 'src/config')",
+                "default": []
+              },
+              "patterns": {
+                "type": "array",
+                "items": { "type": "string" },
+                "description": "Glob patterns to exclude (e.g., '*.tmp', 'build/**')",
+                "default": [
+                  "node_modules",
+                  "*.log"
+                ]
+              }
+            },
+            "scope": "resource"
+          },
           "copy4ai.ignoreGitIgnore": {
             "type": "boolean",
             "default": true,
@@ -228,20 +257,20 @@
     "test": "vscode-test --config ./vscode-test.config.js"
   },
   "devDependencies": {
-    "@types/mocha": "^10.0.7",
-    "@types/node": "20.x",
-    "@types/vscode": "^1.89.0",
-    "@typescript-eslint/eslint-plugin": "^6.21.0",
-    "@typescript-eslint/parser": "^6.21.0",
-    "@vscode/test-cli": "^0.0.10",
-    "@vscode/test-electron": "^2.3.8",
-    "eslint": "^8.57.0",
-    "mocha": "^10.3.0",
-    "typescript": "^5.4.5"
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^20.19.19",
+    "@types/vscode": "^1.104.0",
+    "@typescript-eslint/eslint-plugin": "^8.45.0",
+    "@typescript-eslint/parser": "^8.45.0",
+    "@vscode/test-cli": "^0.0.11",
+    "@vscode/test-electron": "^2.5.2",
+    "eslint": "^9.37.0",
+    "mocha": "^11.7.4",
+    "typescript": "^5.9.3"
   },
   "dependencies": {
-    "ignore": "^5.3.1",
-    "isbinaryfile": "^5.0.0",
+    "ignore": "^7.0.5",
+    "isbinaryfile": "^5.0.6",
     "llm-cost": "^1.0.5"
   },
   "repository": {
@@ -252,5 +281,5 @@
     "url": "https://github.com/LeonKohli/copy4ai/issues"
   },
   "homepage": "https://copy4ai.dev",
-  "license": "SEE LICENSE IN LICENSE"
+  "license": "MIT"
 }

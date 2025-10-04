@@ -27,23 +27,30 @@ export class ConfigurationService {
 
     public static getExcludeConfig(): ExcludeConfig {
         const config = vscode.workspace.getConfiguration(this.configSection);
+        // Preferred structured configuration
+        const structured = config.get<{ paths?: string[]; patterns?: string[] }>('exclude');
+        if (structured && (Array.isArray(structured.paths) || Array.isArray(structured.patterns))) {
+            return {
+                paths: Array.isArray(structured.paths) ? structured.paths : [],
+                patterns: Array.isArray(structured.patterns) ? structured.patterns : ['node_modules', '*.log']
+            };
+        }
+
+        // Legacy flat arrays
         const excludePaths = config.get<string[]>('excludePaths');
         const excludePatterns = config.get<string[]>('excludePatterns');
-
-        // Backward compatibility: handle both new structured config and legacy flat arrays
-        // This prevents breaking existing user configurations during extension updates
         if (Array.isArray(excludePaths) || Array.isArray(excludePatterns)) {
             return {
                 paths: Array.isArray(excludePaths) ? excludePaths : [],
                 patterns: Array.isArray(excludePatterns) ? excludePatterns : ['node_modules', '*.log']
             };
-        } else {
-            const oldExcludePatterns = config.get<string[]>('excludePatterns');
-            return {
-                paths: [],
-                patterns: oldExcludePatterns || ['node_modules', '*.log']
-            };
         }
+
+        // Default fallback
+        return {
+            paths: [],
+            patterns: ['node_modules', '*.log']
+        };
     }
 
     public static async updateConfiguration(

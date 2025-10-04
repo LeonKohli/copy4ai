@@ -27,7 +27,8 @@ export class ProjectTreeGenerator {
             // This optimization prevents reading large ignored directories like node_modules
             if (currentDepth > 0) {
                 const relativePath = path.relative(rootPath, dir);
-                if (relativePath && ig.ignores(relativePath)) {
+                const relativePathPosix = relativePath.split(path.sep).join('/');
+                if (relativePath && ig.ignores(relativePathPosix)) {
                     return '';
                 }
                 if (isExcludedByAbsolutePath(dir)) {
@@ -35,20 +36,20 @@ export class ProjectTreeGenerator {
                 }
             }
             
-            const files = await fs.readdir(dir);
-            const visibleFiles: string[] = [];
+            const entries = await fs.readdir(dir, { withFileTypes: true });
+            const visibleEntries: Array<{ name: string; isDirectory: boolean }> = [];
 
-            for (const file of files) {
-                const filePath = path.join(dir, file);
-                const relativePath = path.relative(dir, filePath);
+            for (const entry of entries) {
+                const filePath = path.join(dir, entry.name);
+                const rootRelative = path.relative(rootPath, filePath).split(path.sep).join('/');
 
                 let isIgnored = false;
                 let isExcludedByPath = false;
 
                 try {
-                    isIgnored = ig.ignores(relativePath);
+                    isIgnored = ig.ignores(rootRelative);
                 } catch (error) {
-                    console.error(`Error checking ignore pattern for ${relativePath}: ${error}`);
+                    console.error(`Error checking ignore pattern for ${rootRelative}: ${error}`);
                     isIgnored = false;
                 }
 
@@ -60,32 +61,31 @@ export class ProjectTreeGenerator {
                 }
 
                 if (!isIgnored && !isExcludedByPath) {
-                    visibleFiles.push(file);
+                    visibleEntries.push({ name: entry.name, isDirectory: entry.isDirectory() });
                 }
             }
 
-            if (visibleFiles.length === 0) {
+            if (visibleEntries.length === 0) {
                 return '';
             }
-
-            const sortedFiles = await this.sortFiles(dir, visibleFiles);
+            
+            const sortedEntries = this.sortEntries(visibleEntries);
             
             let result = '';
-            for (let i = 0; i < sortedFiles.length; i++) {
-                const file = sortedFiles[i];
-                const filePath = path.join(dir, file);
-                const isLast = i === sortedFiles.length - 1;
+            for (let i = 0; i < sortedEntries.length; i++) {
+                const { name, isDirectory } = sortedEntries[i];
+                const filePath = path.join(dir, name);
+                const isLast = i === sortedEntries.length - 1;
                 
                 // Tree drawing characters follow standard CLI conventions
                 // ├── for intermediate items, └── for last items in a branch
                 const connector = isLast ? '└── ' : '├── ';
                 const newPrefix = isLast ? '    ' : '│   ';
 
-                result += prefix + connector + file + '\n';
+                result += prefix + connector + name + '\n';
 
-                try {
-                    const stats = await fs.stat(filePath);
-                    if (stats.isDirectory()) {
+                if (isDirectory) {
+                    try {
                         const subTree = await this.generateProjectTree(
                             filePath,
                             ig,
@@ -96,9 +96,9 @@ export class ProjectTreeGenerator {
                             rootPath
                         );
                         result += subTree;
+                    } catch (error) {
+                        console.error(`Error processing ${filePath}:`, error);
                     }
-                } catch (error) {
-                    console.error(`Error processing ${filePath}:`, error);
                 }
             }
 
@@ -109,38 +109,16 @@ export class ProjectTreeGenerator {
         }
     }
 
-    private static async sortFiles(dir: string, files: string[]): Promise<string[]> {
-        const fileInfo: Array<{ name: string; isDirectory: boolean }> = [];
-
-        for (const file of files) {
-            try {
-                const filePath = path.join(dir, file);
-                const stats = await fs.stat(filePath);
-                fileInfo.push({
-                    name: file,
-                    isDirectory: stats.isDirectory()
-                });
-            } catch (error) {
-                console.error(`Error getting stats for ${file}:`, error);
-                fileInfo.push({
-                    name: file,
-                    isDirectory: false
-                });
-            }
-        }
-
+    private static sortEntries(entries: Array<{ name: string; isDirectory: boolean }>): Array<{ name: string; isDirectory: boolean }> {
         // Standard file explorer behavior: directories first, then files, both alphabetical
-        // This matches user expectations from most operating systems and file managers
-        return fileInfo
-            .sort((a, b) => {
-                if (a.isDirectory && !b.isDirectory) {
-                    return -1;
-                }
-                if (!a.isDirectory && b.isDirectory) {
-                    return 1;
-                }
-                return a.name.localeCompare(b.name);
-            })
-            .map(item => item.name);
+        return entries.sort((a, b) => {
+            if (a.isDirectory && !b.isDirectory) {
+                return -1;
+            }
+            if (!a.isDirectory && b.isDirectory) {
+                return 1;
+            }
+            return a.name.localeCompare(b.name);
+        });
     }
 } 
