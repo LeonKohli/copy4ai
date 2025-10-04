@@ -73,12 +73,12 @@ All notable changes to the "Copy4AI" extension will be documented in this file.
 ## [1.0.17] - 2025-03-15
 
 ### Added
-- New exclusion configuration with `copy4ai.exclude` setting
-- Support for absolute path exclusions (relative to workspace root)
+- New `copy4ai.excludePaths` setting for absolute path exclusions (relative to workspace root)
+- Support for excluding specific directories by their full path
 - More precise control over what files and directories are excluded
 
 ### Changed
-- **BREAKING CHANGE**: Replaced `copy4ai.excludePatterns` with the more flexible `copy4ai.exclude` object
+- Enhanced exclusion system with separate `excludePaths` and `excludePatterns` settings
 - Fixed issue with excluding directories with common names in specific locations
 
 ## [1.0.16] - 2025-03-05

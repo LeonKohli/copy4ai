@@ -44,7 +44,8 @@ This extension contributes the following settings:
 | `copy4ai.ignoreGitIgnore` | Respect .gitignore rules when generating the project tree and copying files | `true` |
 | `copy4ai.ignoreDotFiles` | Ignore files and directories that start with a dot (.) when generating the project tree and copying files | `true` |
 | `copy4ai.maxDepth` | Maximum depth of the project tree | `5` |
-| `copy4ai.exclude` | Exclusion configuration for files and directories | `{ "paths": [], "patterns": ["node_modules", "*.log"] }` |
+| `copy4ai.excludePaths` | Array of absolute paths relative to workspace root to exclude (e.g., `["src/config", "vendor/unwanted"]`) | `[]` |
+| `copy4ai.excludePatterns` | Array of glob patterns to exclude (e.g., `["*.tmp", "build/**"]`) | `["node_modules", "*.log"]` |
 | `copy4ai.outputFormat` | Output format for the copied content (options: "plaintext", "markdown", "xml") | `"markdown"` |
 | `copy4ai.maxFileSize` | Maximum file size (in bytes) to include in the output | `1048576` (1MB) |
 | `copy4ai.includeProjectTree` | Include the project tree structure in the output | `true` |
@@ -155,19 +156,15 @@ If you have any feedback or would like to contribute to the development of Copy4
 
 ### Exclusion Configuration
 
-The `copy4ai.exclude` setting provides precise control over what files and directories are excluded:
+The exclusion settings provide precise control over what files and directories are excluded:
 
 ```json
-"copy4ai.exclude": {
-  "paths": ["src/config", "vendor/unwanted-package"],
-  "patterns": ["node_modules", "*.log", "*.tmp"]
-}
+"copy4ai.excludePaths": ["src/config", "vendor/unwanted-package"],
+"copy4ai.excludePatterns": ["node_modules", "*.log", "*.tmp", "build/**"]
 ```
 
-- **paths**: Absolute paths relative to workspace root. These are exact path matches that will exclude specific directories or files regardless of their name. This solves the problem of excluding directories with common names (like "config") in specific locations while keeping others.
-- **patterns**: Standard glob patterns for more general exclusions.
-
-> **Note:** In version 1.0.17, the `excludePatterns` setting was replaced with the more flexible `exclude` object. Please update your configuration accordingly.
+- **excludePaths**: Array of absolute paths relative to workspace root. These are exact path matches that will exclude specific directories or files regardless of their name. This solves the problem of excluding directories with common names (like "config") in specific locations while keeping others.
+- **excludePatterns**: Array of standard glob patterns for more general exclusions.
 
 ## 🔍 Output Formats
 
