@@ -85,12 +85,11 @@
         {
           "command": "snapsource.copyToClipboard",
           "group": "copy4ai@1",
-          "when": "explorerViewletVisible && filesExplorerFocus && !explorerResourceIsRoot"
+          "when": "!explorerResourceIsRoot"
         },
         {
           "command": "snapsource.copyProjectStructure",
-          "group": "copy4ai@2",
-          "when": "explorerViewletVisible && filesExplorerFocus"
+          "group": "copy4ai@2"
         }
       ],
       "editor/context": [
