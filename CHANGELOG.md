@@ -2,6 +2,16 @@
 
 All notable changes to the "Copy4AI" extension will be documented in this file.
 
+## [1.1.2] - 2025-10-04
+
+### Fixed
+- Fixed explorer context menu not appearing in some VS Code configurations (fixes #10)
+  - Removed overly restrictive `filesExplorerFocus` and `explorerViewletVisible` when clauses
+  - Context menu items now appear reliably when right-clicking in the Explorer sidebar
+- Corrected documentation for exclude settings (fixes #11)
+  - Updated README and CHANGELOG to reflect actual implementation using `excludePaths` and `excludePatterns`
+  - Removed references to non-existent nested `exclude` object
+
 ## [1.1.1] - 2025-06-11
 
 ### Fixed
