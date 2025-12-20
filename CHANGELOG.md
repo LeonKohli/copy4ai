@@ -2,6 +2,11 @@
 
 All notable changes to the "Copy4AI" extension will be documented in this file.
 
+## [1.3.3] - 2025-12-20
+
+### Fixed
+- Updated CI workflow to use @vscode/vsce instead of deprecated vsce
+
 ## [1.3.2] - 2025-12-20
 
 ### Fixed

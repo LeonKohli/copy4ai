@@ -45,7 +45,7 @@ jobs:
       - name: Package Extension
         id: package
         run: |
-          npx vsce package
+          npx @vscode/vsce package
           echo "vsix_path=$(ls *.vsix)" >> $GITHUB_OUTPUT
 
       - name: Validate VSIX
@@ -114,7 +114,7 @@ jobs:
       - name: Package Extension for Release
         id: package_release
         run: |
-          npx vsce package
+          npx @vscode/vsce package
           echo "vsix_path=$(ls *.vsix)" >> $GITHUB_OUTPUT
 
       - name: Generate Release Notes
