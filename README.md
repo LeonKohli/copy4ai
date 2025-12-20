@@ -74,6 +74,26 @@ None at this time.
 
 ## 📝 Release Notes
 
+### 1.3.0
+
+#### Added
+- New `copy4ai.excludeContentPatterns` setting to show files in project tree but exclude their content (fixes #15)
+  - Files matching patterns display `[File content not included]` placeholder
+  - Useful for SVGs, images, or other files you want listed but not included
+
+#### Fixed
+- Fixed markdown code block nesting when copying markdown files containing code blocks (fixes #16)
+- Fixed ESLint configuration for ESLint 9 compatibility
+
+### 1.2.0
+
+#### Added
+- Structured exclusion configuration via `copy4ai.exclude` object
+
+#### Changed
+- Improved project tree generation performance
+- Removed explicit `activationEvents` from package.json
+
 ### 1.1.0
 
 #### Major Update - TypeScript Migration

@@ -58,6 +58,11 @@ export class Copy4AIService {
                     workspaceFolder.uri.fsPath,
                     excludeConfig.paths
                 );
+
+                const shouldExcludeContent = IgnoreUtils.createContentExclusionFn(
+                    workspaceFolder.uri.fsPath,
+                    config.excludeContentPatterns
+                );
                 
                 let projectRootPath = workspaceFolder.uri.fsPath;
                 let projectRootName = '';
@@ -102,7 +107,8 @@ export class Copy4AIService {
                         maxFileSize: config.maxFileSize,
                         compressCode: config.compressCode,
                         removeComments: config.removeComments,
-                        isExcludedByAbsolutePath
+                        isExcludedByAbsolutePath,
+                        shouldExcludeContent
                     };
                     
                     const totalItems = itemsToProcess.length;

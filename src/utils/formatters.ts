@@ -23,8 +23,10 @@ export class OutputFormatter {
         projectTree: string
     ): string {
         switch (format) {
-            case 'markdown':
-                return `# Project Structure\n\n\`\`\`\n${projectTree}\`\`\`\n`;
+            case 'markdown': {
+                const fence = this.getMarkdownFence(projectTree);
+                return `# Project Structure\n\n${fence}\n${projectTree}${fence}\n`;
+            }
             case 'xml':
                 return `<?xml version="1.0" encoding="UTF-8"?>\n<copy4ai>\n` +
                     `  <project_structure>\n` +
@@ -42,14 +44,16 @@ export class OutputFormatter {
         let output = '';
         
         if (projectTree) {
-            output += '# Project Structure\n\n```\n' + projectTree + '```\n\n';
+            const fence = this.getMarkdownFence(projectTree);
+            output += `# Project Structure\n\n${fence}\n${projectTree}${fence}\n\n`;
         }
         
         if (content.length > 0) {
             output += '# File Contents\n\n';
             for (const file of content) {
                 const fileExtension = this.getFileExtension(file.path);
-                output += `## ${file.path}\n\n\`\`\`${fileExtension}\n${file.content}\n\`\`\`\n\n`;
+                const fence = this.getMarkdownFence(file.content);
+                output += `## ${file.path}\n\n${fence}${fileExtension}\n${file.content}\n${fence}\n\n`;
             }
         }
         
@@ -152,5 +156,21 @@ export class OutputFormatter {
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#039;');
+    }
+
+    /**
+     * Returns a markdown fence longer than any fence in content.
+     * E.g., content with ``` returns ````, content with ```` returns `````.
+     */
+    public static getMarkdownFence(content: string): string {
+        const backtickSequences = content.match(/`{3,}/g);
+        if (!backtickSequences) {
+            return '```';
+        }
+        const longestSequence = backtickSequences.reduce(
+            (max, sequence) => Math.max(max, sequence.length),
+            0
+        );
+        return '`'.repeat(longestSequence + 1);
     }
 } 

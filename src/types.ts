@@ -32,6 +32,7 @@ export interface Copy4AIConfiguration {
     readonly maxDepth: number;
     readonly excludePaths: ReadonlyArray<string>;
     readonly excludePatterns: ReadonlyArray<string>;
+    readonly excludeContentPatterns: ReadonlyArray<string>;
     readonly outputFormat: OutputFormat;
     readonly maxFileSize: number;
     readonly includeProjectTree: boolean;
@@ -48,6 +49,7 @@ export interface ProcessFileOptions {
     compressCode: boolean;
     removeComments: boolean;
     isExcludedByAbsolutePath: (filePath: string) => boolean;
+    shouldExcludeContent: (filePath: string) => boolean;
 }
 
 // Supported LLM models for token counting and cost estimation

@@ -2,7 +2,7 @@
   "name": "snapsource",
   "displayName": "Copy4AI - Copy Project Code to ChatGPT",
   "description": "Easily copy file and folder contents with project tree structure to clipboard for AI (LLM/ChatGPT/Claude/...) context.",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "publisher": "LeonKohli",
   "author": {
     "name": "Leon Kohli"
@@ -193,6 +193,15 @@
             "type": "boolean",
             "default": true,
             "description": "Include the project tree structure in the output"
+          },
+          "copy4ai.excludeContentPatterns": {
+            "type": "array",
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "description": "Glob patterns for files to show in tree but exclude content (e.g., '**/*.svg', '**/*.png'). Files matching these patterns will display '[File content not included]' placeholder.",
+            "scope": "resource"
           }
         }
       },
@@ -253,7 +262,7 @@
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
-    "lint": "eslint src --ext ts",
+    "lint": "eslint src",
     "test": "vscode-test --config ./vscode-test.config.js"
   },
   "devDependencies": {

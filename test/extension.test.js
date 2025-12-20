@@ -174,6 +174,42 @@ suite('Copy4AI Extension Test Suite', () => {
             assert.ok(xmlResult.includes('<copy4ai>'), 'XML should include root element');
             assert.ok(xmlResult.includes('</copy4ai>'), 'XML should close root element');
         });
+
+        test('Should handle nested markdown code blocks (Issue #16)', async () => {
+            const markdownFileContent = '# Installation\n\n```sh\nnpm i -S my-project\n```\n\nGood luck!';
+            const content = [{
+                path: 'README.md',
+                content: markdownFileContent
+            }];
+
+            const result = OutputFormatter.formatOutput('markdown', '', content);
+            
+            assert.ok(result.includes('````markdown'), 'Should use 4 backticks for outer fence when content has 3');
+            assert.ok(result.includes('```sh'), 'Inner code block should remain unchanged');
+            assert.ok(result.includes('npm i -S my-project'), 'Content should be preserved');
+            
+            const outerFenceCount = (result.match(/````/g) || []).length;
+            assert.strictEqual(outerFenceCount, 2, 'Should have exactly 2 quadruple-backtick fences (open and close)');
+        });
+
+        test('Should handle deeply nested markdown code blocks', async () => {
+            const deeplyNestedContent = '# Demo\n\n````md\n```js\nconsole.log("hi");\n```\n````';
+            const content = [{
+                path: 'nested.md',
+                content: deeplyNestedContent
+            }];
+
+            const result = OutputFormatter.formatOutput('markdown', '', content);
+            
+            assert.ok(result.includes('`````markdown'), 'Should use 5 backticks when content has 4');
+        });
+
+        test('getMarkdownFence should return correct fence length', () => {
+            assert.strictEqual(OutputFormatter.getMarkdownFence('plain text'), '```');
+            assert.strictEqual(OutputFormatter.getMarkdownFence('```js\ncode\n```'), '````');
+            assert.strictEqual(OutputFormatter.getMarkdownFence('````md\n```\n````'), '`````');
+            assert.strictEqual(OutputFormatter.getMarkdownFence('Use `code` or ``double``'), '```');
+        });
     });
 
     suite('Content Processing', () => {
@@ -664,6 +700,37 @@ suite('Copy4AI Extension Test Suite', () => {
             } finally {
                 // Note: We don't clean up the test files as they're part of the test workspace
             }
+        });
+
+        test('createContentExclusionFn should match files by glob pattern', () => {
+            const workspacePath = path.resolve('/mock/workspace');
+            
+            const shouldExcludeContent = IgnoreUtils.createContentExclusionFn(
+                workspacePath,
+                ['**/*.svg', '**/*.png', 'assets/**']
+            );
+            
+            const testCases = [
+                { file: path.join(workspacePath, 'icon.svg'), expected: true },
+                { file: path.join(workspacePath, 'images', 'logo.png'), expected: true },
+                { file: path.join(workspacePath, 'assets', 'data.json'), expected: true },
+                { file: path.join(workspacePath, 'src', 'app.js'), expected: false },
+                { file: path.join(workspacePath, 'README.md'), expected: false },
+            ];
+            
+            testCases.forEach(tc => {
+                const result = shouldExcludeContent(tc.file);
+                assert.strictEqual(result, tc.expected, 
+                    `${tc.file} should ${tc.expected ? 'be excluded' : 'not be excluded'}`);
+            });
+        });
+
+        test('createContentExclusionFn should return false when patterns empty', () => {
+            const workspacePath = path.resolve('/mock/workspace');
+            const shouldExcludeContent = IgnoreUtils.createContentExclusionFn(workspacePath, []);
+            
+            assert.strictEqual(shouldExcludeContent(path.join(workspacePath, 'any.svg')), false);
+            assert.strictEqual(shouldExcludeContent(path.join(workspacePath, 'file.png')), false);
         });
     });
 });

@@ -23,6 +23,13 @@ export class FileProcessor {
                 return null;
             }
 
+            if (options.shouldExcludeContent(filePath)) {
+                return {
+                    path: relativePath,
+                    content: '[File content not included]'
+                };
+            }
+
             const stats = await fs.stat(filePath);
             if (stats.size > options.maxFileSize) {
                 return {

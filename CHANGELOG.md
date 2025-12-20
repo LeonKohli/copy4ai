@@ -2,6 +2,20 @@
 
 All notable changes to the "Copy4AI" extension will be documented in this file.
 
+## [1.3.0] - 2025-12-20
+
+### Added
+- New `copy4ai.excludeContentPatterns` setting to show files in project tree but exclude their content (fixes #15)
+  - Files matching patterns display `[File content not included]` placeholder
+  - Useful for SVGs, images, or other files you want listed but not included in output
+  - Example: `["**/*.svg", "**/*.png", "assets/**"]`
+
+### Fixed
+- Fixed markdown code block nesting issue when copying markdown files containing code blocks (fixes #16)
+  - Extension now dynamically uses longer fences when content contains backticks
+  - E.g., content with ` ``` ` is wrapped with ` ```` `, content with ` ```` ` uses ` ````` `
+- Fixed ESLint configuration for ESLint 9 flat config compatibility
+
 ## [1.2.0] - 2025-10-04
 
 ### Added
