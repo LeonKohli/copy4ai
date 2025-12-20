@@ -2,6 +2,11 @@
 
 All notable changes to the "Copy4AI" extension will be documented in this file.
 
+## [1.3.2] - 2025-12-20
+
+### Fixed
+- Fixed engines.vscode version to match @types/vscode (^1.104.0)
+
 ## [1.3.1] - 2025-12-20
 
 ### Fixed
