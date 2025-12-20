@@ -2,6 +2,11 @@
 
 All notable changes to the "Copy4AI" extension will be documented in this file.
 
+## [1.3.1] - 2025-12-20
+
+### Fixed
+- Fixed missing `activationEvents` in package.json causing vsce packaging to fail
+
 ## [1.3.0] - 2025-12-20
 
 ### Added

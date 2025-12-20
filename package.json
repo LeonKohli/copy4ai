@@ -2,7 +2,7 @@
   "name": "snapsource",
   "displayName": "Copy4AI - Copy Project Code to ChatGPT",
   "description": "Easily copy file and folder contents with project tree structure to clipboard for AI (LLM/ChatGPT/Claude/...) context.",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "publisher": "LeonKohli",
   "author": {
     "name": "Leon Kohli"
@@ -45,6 +45,7 @@
   "pricing": "Free",
   
   "main": "./out/extension.js",
+  "activationEvents": [],
   "contributes": {
     "commands": [
       {
