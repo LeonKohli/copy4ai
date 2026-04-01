@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Select &amp; Copy (Copy4AI)</title>
+  <style>
+    :root {
+      --bg: var(--vscode-editor-background, #1e1e1e);
+      --fg: var(--vscode-editor-foreground, #cccccc);
+      --accent: var(--vscode-button-background, #0e639c);
+      --accent-hover: var(--vscode-button-hoverBackground, #1177bb);
+      --border: var(--vscode-panel-border, #444);
+      --hover-bg: var(--vscode-list-hoverBackground, #2a2d2e);
+      --input-bg: var(--vscode-input-background, #3c3c3c);
+      --secondary-btn-bg: var(--vscode-button-secondaryBackground, #3a3d41);
+      --secondary-btn-fg: var(--vscode-button-secondaryForeground, #cccccc);
+      --modal-bg: var(--vscode-editorWidget-background, #252526);
+      --modal-border: var(--vscode-editorWidget-border, #555);
+      --shadow: rgba(0, 0, 0, 0.5);
+      --ignored-opacity: 0.45;
+      --cb-border: #888;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--vscode-font-family, system-ui, sans-serif);
+      font-size: var(--vscode-font-size, 13px);
+      background: rgba(0, 0, 0, 0.4);
+      color: var(--fg);
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-start;
+      height: 100vh;
+      overflow: hidden;
+      padding-top: 16vh;
+      padding-left: 28vw;
+    }
+
+    .modal {
+      background: var(--modal-bg);
+      border: 1px solid var(--modal-border);
+      border-radius: 8px;
+      box-shadow: 0 8px 32px var(--shadow);
+      width: 540px;
+      max-width: 90vw;
+      max-height: 65vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .header {
+      padding: 14px 16px 10px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .header h2 {
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 4px;
+    }
+
+    .search-box {
+      width: 100%;
+      padding: 5px 10px;
+      background: var(--input-bg);
+      color: var(--fg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      outline: none;
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+
+    .search-box:focus {
+      border-color: var(--accent);
+    }
+
+    .toggle-row {
+      display: flex;
+      gap: 14px;
+      font-size: 11px;
+    }
+
+    .toggle-row label {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .toggle-row input[type="checkbox"] {
+      display: none;
+    }
+
+    .toggle-cb {
+      width: 14px;
+      height: 14px;
+      border: 1.5px solid var(--cb-border);
+      border-radius: 3px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      background: transparent;
+      transition: all 0.15s;
+    }
+
+    .toggle-row input[type="checkbox"]:checked+.toggle-cb {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .toggle-row input[type="checkbox"]:checked+.toggle-cb::after {
+      content: "✓";
+      color: #fff;
+      font-size: 10px;
+      font-weight: bold;
+      line-height: 1;
+    }
+
+    .tree-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 4px 0;
+      min-height: 0;
+    }
+
+    .tree-node {
+      user-select: none;
+    }
+
+    .tree-row {
+      display: flex;
+      align-items: center;
+      padding: 2px 8px;
+      cursor: pointer;
+      gap: 4px;
+      height: 24px;
+    }
+
+    .tree-row:hover {
+      background: var(--hover-bg);
+    }
+
+    .tree-row.ignored {
+      opacity: var(--ignored-opacity);
+    }
+
+    .indent {
+      flex-shrink: 0;
+    }
+
+    .toggle {
+      width: 16px;
+      height: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 10px;
+      opacity: 0.7;
+    }
+
+    .toggle.collapsed::before {
+      content: "▶";
+    }
+
+    .toggle.expanded::before {
+      content: "▼";
+    }
+
+    .toggle.leaf {
+      visibility: hidden;
+    }
+
+    .cb {
+      width: 16px;
+      height: 16px;
+      border: 1.5px solid var(--cb-border);
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      cursor: pointer;
+      background: transparent;
+      transition: all 0.12s;
+    }
+
+    .cb.unchecked {
+      background: transparent;
+      border-color: var(--cb-border);
+    }
+
+    .cb.checked {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .cb.checked::after {
+      content: "✓";
+      color: #fff;
+      font-size: 11px;
+      font-weight: bold;
+      line-height: 1;
+    }
+
+    .cb.partial {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .cb.partial::after {
+      content: "−";
+      color: #fff;
+      font-size: 14px;
+      font-weight: bold;
+      line-height: 1;
+    }
+
+    .icon {
+      flex-shrink: 0;
+      margin-right: 4px;
+      font-size: 14px;
+    }
+
+    .name {
+      font-size: 13px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .name.folder-name {
+      font-weight: 500;
+    }
+
+    .children {
+      display: block;
+    }
+
+    .children.collapsed {
+      display: none;
+    }
+
+    .footer {
+      padding: 10px 16px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .footer-stats {
+      font-size: 12px;
+      opacity: 0.8;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 8px;
+    }
+
+    button {
+      padding: 6px 14px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      transition: background 0.15s;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn-secondary {
+      background: var(--secondary-btn-bg);
+      color: var(--secondary-btn-fg);
+    }
+
+    .btn-secondary:hover {
+      opacity: 0.85;
+    }
+
+    .tool-btn {
+      padding: 3px 8px;
+      font-size: 11px;
+      border-radius: 3px;
+      background: var(--secondary-btn-bg);
+      color: var(--secondary-btn-fg);
+    }
+
+    .tool-btn:hover {
+      opacity: 0.85;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="modal">
+    <div class="header">
+      <div class="header-top">
+        <h2 id="title">Select &amp; Copy (Copy4AI)</h2>
+        <div class="toolbar">
+          <button class="tool-btn" id="selectAll">Select All</button>
+          <button class="tool-btn" id="deselectAll">Deselect All</button>
+          <button class="tool-btn" id="expandAllBtn">Expand</button>
+          <button class="tool-btn" id="collapseAllBtn">Collapse</button>
+        </div>
+      </div>
+      <input type="text" class="search-box" id="search" placeholder="Filter files..." />
+      <div class="toggle-row">
+        <label title="Show files normally hidden by .gitignore rules">
+          <input type="checkbox" id="toggleGitignore" />
+          <span class="toggle-cb"></span>
+          Show .gitignore'd files
+        </label>
+        <label title="Show dot files (.env, .git, etc.)">
+          <input type="checkbox" id="toggleDotfiles" />
+          <span class="toggle-cb"></span>
+          Show dot files
+        </label>
+      </div>
+    </div>
+
+    <div class="tree-container" id="tree"></div>
+
+    <div class="footer">
+      <div class="footer-stats" id="footerStats">0 files selected</div>
+      <div class="btn-group">
+        <button class="btn-secondary" id="cancelBtn">Cancel</button>
+        <button class="btn-primary" id="copyBtn">Copy for AI</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const vscode = acquireVsCodeApi();
+
+    let treeData = [];
+    let selectedPaths = new Set();
+    let allFilePaths = [];
+    let expandedFolders = new Set();
+    let allFolderPaths = [];
+
+    window.addEventListener("message", (e) => {
+      const msg = e.data;
+      if (msg.command === "loadTree") {
+        treeData = msg.tree;
+        document.getElementById("title").textContent =
+          "Select & Copy — " + msg.folderName;
+
+        if (msg.preserveSelection && Array.isArray(msg.preserveSelection)) {
+          initializeTree(msg.preserveSelection);
+        } else {
+          initializeTree(msg.defaultSelected || []);
+        }
+      }
+    });
+
+    vscode.postMessage({ command: "ready" });
+
+    function initializeTree(selected) {
+      allFilePaths = [];
+      allFolderPaths = [];
+      selectedPaths.clear();
+      expandedFolders.clear();
+
+      collectAllEntries(treeData);
+
+      for (const p of selected) {
+        if (allFilePaths.includes(p)) {
+          selectedPaths.add(p);
+        }
+      }
+
+      // Expand first level by default
+      treeData.forEach((n) => {
+        if (n.type === "folder") expandedFolders.add(n.relativePath);
+      });
+
+      render();
+    }
+
+    function collectAllEntries(nodes) {
+      for (const n of nodes) {
+        if (n.type === "file") {
+          allFilePaths.push(n.relativePath);
+        } else if (n.type === "folder") {
+          allFolderPaths.push(n.relativePath);
+          if (n.children) collectAllEntries(n.children);
+        }
+      }
+    }
+
+    function getFolderState(node) {
+      const files = getDescendantFiles(node);
+      if (files.length === 0) return "unchecked";
+      const sel = files.filter((f) => selectedPaths.has(f));
+      if (sel.length === 0) return "unchecked";
+      if (sel.length === files.length) return "checked";
+      return "partial";
+    }
+
+    function getDescendantFiles(node) {
+      if (node.type === "file") return [node.relativePath];
+      const files = [];
+      if (node.children) {
+        for (const c of node.children) files.push(...getDescendantFiles(c));
+      }
+      return files;
+    }
+
+    function toggleNode(node) {
+      if (node.type === "file") {
+        if (selectedPaths.has(node.relativePath)) {
+          selectedPaths.delete(node.relativePath);
+        } else {
+          selectedPaths.add(node.relativePath);
+        }
+      } else {
+        const files = getDescendantFiles(node);
+        const state = getFolderState(node);
+        if (state === "checked") {
+          files.forEach((f) => selectedPaths.delete(f));
+        } else {
+          files.forEach((f) => selectedPaths.add(f));
+        }
+      }
+      render();
+    }
+
+    function toggleExpand(p) {
+      if (expandedFolders.has(p)) {
+        expandedFolders.delete(p);
+      } else {
+        expandedFolders.add(p);
+      }
+      render();
+    }
+
+    function render() {
+      const searchTerm = document.getElementById("search").value.toLowerCase();
+      const container = document.getElementById("tree");
+      container.innerHTML = "";
+      renderNodes(treeData, container, 0, searchTerm);
+      updateStats();
+    }
+
+    function renderNodes(nodes, parent, depth, searchTerm) {
+      for (const node of nodes) {
+        if (searchTerm && !matchesSearch(node, searchTerm)) continue;
+
+        const el = document.createElement("div");
+        el.className = "tree-node";
+
+        const row = document.createElement("div");
+        row.className = "tree-row" + (node.ignored ? " ignored" : "");
+
+        const indent = document.createElement("span");
+        indent.className = "indent";
+        indent.style.width = depth * 16 + "px";
+        row.appendChild(indent);
+
+        const toggle = document.createElement("span");
+        if (node.type === "folder") {
+          const expanded = expandedFolders.has(node.relativePath);
+          toggle.className = "toggle " + (expanded ? "expanded" : "collapsed");
+          toggle.addEventListener("click", (e) => {
+            e.stopPropagation();
+            toggleExpand(node.relativePath);
+          });
+        } else {
+          toggle.className = "toggle leaf";
+        }
+        row.appendChild(toggle);
+
+        const cb = document.createElement("span");
+        let cbState;
+        if (node.type === "file") {
+          cbState = selectedPaths.has(node.relativePath) ? "checked" : "unchecked";
+        } else {
+          cbState = getFolderState(node);
+        }
+        cb.className = "cb " + cbState;
+        cb.addEventListener("click", (e) => {
+          e.stopPropagation();
+          toggleNode(node);
+        });
+        row.appendChild(cb);
+
+        const icon = document.createElement("span");
+        icon.className = "icon";
+        icon.textContent = node.type === "folder" ? "📁" : "📄";
+        row.appendChild(icon);
+
+        const name = document.createElement("span");
+        name.className = "name" + (node.type === "folder" ? " folder-name" : "");
+        name.textContent = node.name;
+        name.title = node.relativePath + (node.ignored ? " (ignored)" : "");
+        row.appendChild(name);
+
+        row.addEventListener("click", () => {
+          if (node.type === "folder") {
+            toggleExpand(node.relativePath);
+          } else {
+            toggleNode(node);
+          }
+        });
+
+        el.appendChild(row);
+
+        if (node.type === "folder" && node.children) {
+          const childContainer = document.createElement("div");
+          const expanded = expandedFolders.has(node.relativePath);
+          childContainer.className = "children" + (expanded ? "" : " collapsed");
+          renderNodes(node.children, childContainer, depth + 1, searchTerm);
+          el.appendChild(childContainer);
+        }
+
+        parent.appendChild(el);
+      }
+    }
+
+    function matchesSearch(node, term) {
+      if (node.name.toLowerCase().includes(term)) return true;
+      if (node.relativePath.toLowerCase().includes(term)) return true;
+      if (node.children) return node.children.some((c) => matchesSearch(c, term));
+      return false;
+    }
+
+    function updateStats() {
+      document.getElementById("footerStats").textContent =
+        selectedPaths.size + " / " + allFilePaths.length + " files selected";
+    }
+
+    // ── Toolbar buttons ────────────────────────
+    document.getElementById("selectAll").addEventListener("click", () => {
+      allFilePaths.forEach((p) => selectedPaths.add(p));
+      render();
+    });
+
+    document.getElementById("deselectAll").addEventListener("click", () => {
+      selectedPaths.clear();
+      render();
+    });
+
+    document.getElementById("expandAllBtn").addEventListener("click", () => {
+      allFolderPaths.forEach((p) => expandedFolders.add(p));
+      render();
+    });
+
+    document.getElementById("collapseAllBtn").addEventListener("click", () => {
+      expandedFolders.clear();
+      render();
+    });
+
+    document.getElementById("search").addEventListener("input", () => {
+      render();
+    });
+
+    // ── Setting toggles ───────────────────────
+    document.getElementById("toggleGitignore").addEventListener("change", () => {
+      requestTreeRefresh();
+    });
+
+    document.getElementById("toggleDotfiles").addEventListener("change", () => {
+      requestTreeRefresh();
+    });
+
+    function requestTreeRefresh() {
+      const showGitIgnored = document.getElementById("toggleGitignore").checked;
+      const showDotFiles = document.getElementById("toggleDotfiles").checked;
+      vscode.postMessage({
+        command: "refreshTree",
+        showGitIgnored: showGitIgnored,
+        showDotFiles: showDotFiles,
+        currentSelection: Array.from(selectedPaths),
+      });
+    }
+
+    // ── Action buttons ─────────────────────────
+    document.getElementById("copyBtn").addEventListener("click", () => {
+      vscode.postMessage({
+        command: "copy",
+        selectedPaths: Array.from(selectedPaths),
+      });
+    });
+
+    document.getElementById("cancelBtn").addEventListener("click", () => {
+      vscode.postMessage({ command: "cancel" });
+    });
+  </script>
+</body>
+
+</html>

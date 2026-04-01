@@ -1,10 +1,10 @@
 const assert = require('assert');
 const vscode = require('vscode');
-const { 
-    OutputFormatter, 
-    FileProcessor, 
-    IgnoreUtils, 
-    ConfigurationService 
+const {
+    OutputFormatter,
+    FileProcessor,
+    IgnoreUtils,
+    ConfigurationService
 } = require('../out/extension');
 const path = require('path');
 
@@ -29,18 +29,18 @@ suite('Copy4AI Extension Test Suite', () => {
     });
 
     suite('Extension Basics', () => {
-        test('Should register command', async function() {
+        test('Should register command', async function () {
             this.timeout(10000); // Increase timeout for this test
-            
+
             // Ensure extension is activated
             const ext = vscode.extensions.getExtension('LeonKohli.snapsource');
             if (ext && !ext.isActive) {
                 await ext.activate();
             }
-            
+
             // Wait a bit for commands to register
             await new Promise(resolve => setTimeout(resolve, 1000));
-            
+
             const commands = await vscode.commands.getCommands();
             assert.ok(commands.includes('snapsource.copyToClipboard'));
         });
@@ -119,10 +119,10 @@ suite('Copy4AI Extension Test Suite', () => {
             }];
 
             const xmlResult = OutputFormatter.formatOutput('xml', '', content);
-            
+
             // Check path attribute is properly escaped
             assert.ok(xmlResult.includes('path="test &amp; demo.xml"'), 'Should escape special characters in path attribute');
-            
+
             // Check content is wrapped in CDATA
             assert.ok(xmlResult.includes('<![CDATA[<test>Hello & World</test>]]>'), 'Should wrap content in CDATA');
         });
@@ -148,7 +148,7 @@ suite('Copy4AI Extension Test Suite', () => {
             ];
 
             const markdownResult = OutputFormatter.formatOutput('markdown', '', content);
-            
+
             // Check language-specific code blocks
             assert.ok(markdownResult.includes('```python\nprint("Hello")'), 'Should use python language for Python files');
             assert.ok(markdownResult.includes('```css\nbody { color: red; }'), 'Should use css language for CSS files');
@@ -165,7 +165,7 @@ suite('Copy4AI Extension Test Suite', () => {
                 assert.ok(!result.includes('undefined'), `${format} format should not contain undefined`);
                 assert.strictEqual(result, '', `${format} format should return empty string for empty content and tree`);
             }
-            
+
             // Test XML format (returns basic XML structure even when empty)
             const xmlResult = OutputFormatter.formatOutput('xml', '', []);
             assert.ok(typeof xmlResult === 'string', 'XML format should return a string');
@@ -183,11 +183,11 @@ suite('Copy4AI Extension Test Suite', () => {
             }];
 
             const result = OutputFormatter.formatOutput('markdown', '', content);
-            
+
             assert.ok(result.includes('````markdown'), 'Should use 4 backticks for outer fence when content has 3');
             assert.ok(result.includes('```sh'), 'Inner code block should remain unchanged');
             assert.ok(result.includes('npm i -S my-project'), 'Content should be preserved');
-            
+
             const outerFenceCount = (result.match(/````/g) || []).length;
             assert.strictEqual(outerFenceCount, 2, 'Should have exactly 2 quadruple-backtick fences (open and close)');
         });
@@ -200,7 +200,7 @@ suite('Copy4AI Extension Test Suite', () => {
             }];
 
             const result = OutputFormatter.formatOutput('markdown', '', content);
-            
+
             assert.ok(result.includes('`````markdown'), 'Should use 5 backticks when content has 4');
         });
 
@@ -266,7 +266,7 @@ suite('Copy4AI Extension Test Suite', () => {
                     console.log("test");  // Inline comment
                 }
             `;
-            
+
             const expectedAfterCommentRemoval = `
                 
                 function test() {
@@ -274,15 +274,15 @@ suite('Copy4AI Extension Test Suite', () => {
                     console.log("test");  
                 }
             `;
-            
+
             const expectedFinal = 'function test() {\nconsole.log("test");\n}';
-            
+
             const withoutComments = FileProcessor.removeCodeComments(input);
             assert.strictEqual(withoutComments, expectedAfterCommentRemoval, 'Should remove all comments');
-            
+
             const compressed = FileProcessor.compressCodeContent(withoutComments);
             assert.strictEqual(compressed, expectedFinal, 'Should compress code after comment removal');
-            
+
             // Test processContent function directly
             const processed = FileProcessor.processContent(input, true, true);
             assert.strictEqual(processed, expectedFinal, 'Should process content with both options');
@@ -290,34 +290,34 @@ suite('Copy4AI Extension Test Suite', () => {
     });
 
     suite('Command Functionality', () => {
-        test('Should respect configuration settings', async function() {
+        test('Should respect configuration settings', async function () {
             this.timeout(30000);
-            
+
             // Get the configuration
             const config = vscode.workspace.getConfiguration('copy4ai');
-            
+
             try {
                 // Reset settings first to ensure clean state
                 await config.update('outputFormat', undefined, vscode.ConfigurationTarget.Global);
                 await config.update('maxDepth', undefined, vscode.ConfigurationTarget.Global);
-                
+
                 // Wait for settings to be reset
                 await new Promise(resolve => setTimeout(resolve, 1000));
-                
+
                 // Update settings
                 await config.update('outputFormat', 'markdown', vscode.ConfigurationTarget.Global);
                 await config.update('maxDepth', 5, vscode.ConfigurationTarget.Global);
-                
+
                 // Wait for settings to be applied
                 await new Promise(resolve => setTimeout(resolve, 1000));
-                
+
                 // Get a fresh configuration instance
                 const updatedConfig = vscode.workspace.getConfiguration('copy4ai');
-                
+
                 // Verify settings
                 const format = updatedConfig.get('outputFormat');
                 const depth = updatedConfig.get('maxDepth');
-                
+
                 assert.strictEqual(format, 'markdown', 'Should update output format setting');
                 assert.strictEqual(depth, 5, 'Should update max depth setting');
             } finally {
@@ -331,25 +331,25 @@ suite('Copy4AI Extension Test Suite', () => {
             // Ensure testWorkspace directory exists
             const testWorkspacePath = path.join(__dirname, 'testWorkspace');
             await vscode.workspace.fs.createDirectory(vscode.Uri.file(testWorkspacePath));
-            
+
             const testFilePath = path.join(testWorkspacePath, 'test.bin');
             const buffer = Buffer.from([0x89, 0x50, 0x4E, 0x47]); // PNG magic number
-            
+
             // Create a binary file
             await vscode.workspace.fs.writeFile(vscode.Uri.file(testFilePath), buffer);
 
             try {
                 // Open the workspace where the file is located
                 await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(testWorkspacePath));
-                
+
                 // Wait for workspace to open
                 await new Promise(resolve => setTimeout(resolve, 500));
-                
+
                 const uri = vscode.Uri.file(testFilePath);
                 await vscode.commands.executeCommand('snapsource.copyToClipboard', uri);
-                
+
                 const clipboardContent = await vscode.env.clipboard.readText();
-                assert.ok(clipboardContent.includes('[Binary file content not included]'), 
+                assert.ok(clipboardContent.includes('[Binary file content not included]'),
                     'Should indicate binary file content is not included');
             } finally {
                 // Cleanup
@@ -365,27 +365,27 @@ suite('Copy4AI Extension Test Suite', () => {
             // Ensure testWorkspace directory exists
             const testWorkspacePath = path.join(__dirname, 'testWorkspace');
             await vscode.workspace.fs.createDirectory(vscode.Uri.file(testWorkspacePath));
-            
+
             const testFilePath = path.join(testWorkspacePath, 'large.txt');
             const largeContent = 'x'.repeat(2 * 1024 * 1024); // 2MB file
-            
+
             // Create a large file
             await vscode.workspace.fs.writeFile(vscode.Uri.file(testFilePath), Buffer.from(largeContent));
 
             try {
                 // Ensure we're in the right workspace
-                if (!vscode.workspace.workspaceFolders || 
+                if (!vscode.workspace.workspaceFolders ||
                     !vscode.workspace.workspaceFolders[0].uri.fsPath.includes('testWorkspace')) {
                     await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(testWorkspacePath));
                     // Wait for workspace to open
                     await new Promise(resolve => setTimeout(resolve, 500));
                 }
-                
+
                 const uri = vscode.Uri.file(testFilePath);
                 await vscode.commands.executeCommand('snapsource.copyToClipboard', uri);
-                
+
                 const clipboardContent = await vscode.env.clipboard.readText();
-                assert.ok(clipboardContent.includes('[File too large:') && clipboardContent.includes('2.0 MB'), 
+                assert.ok(clipboardContent.includes('[File too large:') && clipboardContent.includes('2.0 MB'),
                     'Should indicate file size exceeds limit');
             } finally {
                 // Cleanup
@@ -397,13 +397,13 @@ suite('Copy4AI Extension Test Suite', () => {
             }
         });
 
-        test('Should handle multiple file selection', async function() {
+        test('Should handle multiple file selection', async function () {
             this.timeout(10000); // Increase timeout for this test
-            
+
             // Ensure testWorkspace directory exists
             const testWorkspacePath = path.join(__dirname, 'testWorkspace');
             await vscode.workspace.fs.createDirectory(vscode.Uri.file(testWorkspacePath));
-            
+
             const testFiles = [
                 { name: 'test1.txt', content: 'Test content 1' },
                 { name: 'test2.txt', content: 'Test content 2' }
@@ -425,19 +425,19 @@ suite('Copy4AI Extension Test Suite', () => {
                 await new Promise(resolve => setTimeout(resolve, 500));
 
                 // Ensure we're in the right workspace
-                if (!vscode.workspace.workspaceFolders || 
+                if (!vscode.workspace.workspaceFolders ||
                     !vscode.workspace.workspaceFolders[0].uri.fsPath.includes('testWorkspace')) {
                     await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(testWorkspacePath));
                     // Wait for workspace to open
                     await new Promise(resolve => setTimeout(resolve, 1000));
                 }
-                
+
                 // Test multiple file selection
                 await vscode.commands.executeCommand('snapsource.copyToClipboard', uris[0], uris);
-                
+
                 // Ensure clipboard is updated before reading
                 await new Promise(resolve => setTimeout(resolve, 500));
-                
+
                 const clipboardContent = await vscode.env.clipboard.readText();
                 assert.ok(clipboardContent.includes('Test content 1'), 'Should include first file content');
                 assert.ok(clipboardContent.includes('Test content 2'), 'Should include second file content');
@@ -453,83 +453,83 @@ suite('Copy4AI Extension Test Suite', () => {
             }
         });
     });
-    
+
 
     suite('Exclusion Patterns', () => {
         test('Should exclude files using glob patterns', () => {
             // Create an ignore instance with standard patterns
             const ig = IgnoreUtils.createIgnoreInstance(['config', '*.log']);
-            
+
             // Test paths - use platform-agnostic path handling
             const relativePath1 = path.join('src', 'config');
             const relativePath2 = path.join('vendor', 'package', 'config');
-            
+
             // Both should be excluded with the generic pattern
             assert.strictEqual(ig.ignores(relativePath1), true);
             assert.strictEqual(ig.ignores(relativePath2), true);
         });
-        
+
         test('Should exclude specific paths with absolute path exclusion', () => {
             // Create a mock workspace path that's platform-independent
             const workspacePath = path.resolve('/mock/workspace');
-            
+
             // Define absolute paths to exclude with platform-independent path
             const absolutePathsToExclude = [path.join('src', 'config')];
-            
+
             // Create the exclusion function using the helper
             const isExcludedByAbsolutePath = IgnoreUtils.createAbsolutePathExclusionFn(
-                workspacePath, 
+                workspacePath,
                 absolutePathsToExclude
             );
-            
+
             // Test paths with platform-independent join
             const filePath1 = path.join(workspacePath, 'src', 'config');
             const filePath2 = path.join(workspacePath, 'vendor', 'package', 'config');
             const filePath3 = path.join(workspacePath, 'src', 'config', 'settings.json');
-            
+
             // Verify exclusions
             assert.strictEqual(isExcludedByAbsolutePath(filePath1), true, 'src/config should be excluded');
             assert.strictEqual(isExcludedByAbsolutePath(filePath2), false, 'vendor/package/config should not be excluded');
             assert.strictEqual(isExcludedByAbsolutePath(filePath3), true, 'src/config/settings.json should be excluded');
         });
-        
+
         test('Should handle combined exclusion patterns correctly', () => {
             // Create a mock workspace path with platform-independent path
             const workspacePath = path.resolve('/mock/workspace');
-            
+
             // Create an ignore instance with standard patterns
             const ig = IgnoreUtils.createIgnoreInstance(['*.log', '*.tmp']);
-            
+
             // Create the absolute path exclusion function with platform-independent path
             const isExcludedByAbsolutePath = IgnoreUtils.createAbsolutePathExclusionFn(
-                workspacePath, 
+                workspacePath,
                 [path.join('src', 'config')]
             );
-            
+
             // Test paths with platform-independent joins
             const paths = [
-                { 
-                    path: path.join(workspacePath, 'src', 'config', 'app.js'), 
-                    expected: true, 
-                    message: 'src/config/app.js should be excluded by absolute path' 
+                {
+                    path: path.join(workspacePath, 'src', 'config', 'app.js'),
+                    expected: true,
+                    message: 'src/config/app.js should be excluded by absolute path'
                 },
-                { 
-                    path: path.join(workspacePath, 'src', 'utils', 'app.log'), 
-                    expected: true, 
-                    message: 'src/utils/app.log should be excluded by pattern' 
+                {
+                    path: path.join(workspacePath, 'src', 'utils', 'app.log'),
+                    expected: true,
+                    message: 'src/utils/app.log should be excluded by pattern'
                 },
-                { 
-                    path: path.join(workspacePath, 'vendor', 'package', 'config', 'app.js'), 
-                    expected: false, 
-                    message: 'vendor/package/config/app.js should not be excluded' 
+                {
+                    path: path.join(workspacePath, 'vendor', 'package', 'config', 'app.js'),
+                    expected: false,
+                    message: 'vendor/package/config/app.js should not be excluded'
                 },
-                { 
-                    path: path.join(workspacePath, 'src', 'app.js'), 
-                    expected: false, 
-                    message: 'src/app.js should not be excluded' 
+                {
+                    path: path.join(workspacePath, 'src', 'app.js'),
+                    expected: false,
+                    message: 'src/app.js should not be excluded'
                 }
             ];
-            
+
             // Test each path
             paths.forEach(testPath => {
                 const relativePath = path.relative(workspacePath, testPath.path);
@@ -538,108 +538,108 @@ suite('Copy4AI Extension Test Suite', () => {
             });
         });
 
-        test('Should respect exclude configuration in workspace settings', async function() {
+        test('Should respect exclude configuration in workspace settings', async function () {
             this.timeout(10000); // Increase timeout for this test
-            
+
             // Get the test workspace path
             const testWorkspacePath = path.join(__dirname, 'testWorkspace');
-            
+
             try {
                 // Open the test workspace
                 await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(testWorkspacePath));
-                
+
                 // Wait for workspace to open and settings to be loaded
                 await new Promise(resolve => setTimeout(resolve, 2000));
-                
+
                 // Get the configuration
                 const config = vscode.workspace.getConfiguration('copy4ai');
                 const excludeConfig = config.get('exclude');
-                
+
                 // Verify the exclude configuration is loaded correctly
                 assert.ok(excludeConfig, 'Exclude configuration should be present');
                 assert.deepStrictEqual(excludeConfig.paths, ['src/config'], 'Should have correct paths in exclude config');
                 assert.deepStrictEqual(excludeConfig.patterns, ['*.log'], 'Should have correct patterns in exclude config');
-                
+
                 // Test copying the project structure
                 await vscode.commands.executeCommand('snapsource.copyProjectStructure');
-                
+
                 // Wait longer for the command to complete and clipboard to update
                 await new Promise(resolve => setTimeout(resolve, 3000));
-                
+
                 // Get clipboard content
                 const clipboardContent = await vscode.env.clipboard.readText();
-                
+
                 // For debugging purposes only - can be removed in production
                 // console.log('Clipboard content:', clipboardContent);
-                
+
                 // Verify src/config is excluded
                 const srcConfigIncluded = clipboardContent.includes('src/config/config.js');
                 assert.strictEqual(srcConfigIncluded, false, 'src/config/config.js should be excluded');
-                
+
                 // Check if src directory is marked as having ignored files
-                const srcIgnored = clipboardContent.includes('src') && 
-                                  (clipboardContent.includes('(all files ignored)') || 
-                                   clipboardContent.includes('(excluded') || 
-                                   !clipboardContent.includes('src/config'));
+                const srcIgnored = clipboardContent.includes('src') &&
+                    (clipboardContent.includes('(all files ignored)') ||
+                        clipboardContent.includes('(excluded') ||
+                        !clipboardContent.includes('src/config'));
                 assert.strictEqual(srcIgnored, true, 'src directory should indicate files are ignored or excluded');
-                
+
                 // Verify vendor/package/config is included
-                const vendorPathIncluded = clipboardContent.includes('vendor') && 
-                                          clipboardContent.includes('package') && 
-                                          clipboardContent.includes('config');
+                const vendorPathIncluded = clipboardContent.includes('vendor') &&
+                    clipboardContent.includes('package') &&
+                    clipboardContent.includes('config');
                 assert.strictEqual(vendorPathIncluded, true, 'vendor/package/config path structure should be included');
             } finally {
                 // Return to the original workspace if needed
                 // This step might be optional depending on your test setup
             }
         });
-        
-        test('Should use selected folder as root for project structure', async function() {
+
+        test('Should use selected folder as root for project structure', async function () {
             this.timeout(10000); // Increase timeout for this test
-            
+
             // Get the test workspace path
             const testWorkspacePath = path.join(__dirname, 'testWorkspace');
-            
+
             try {
                 // Create a test subfolder structure
                 const subfolderPath = path.join(testWorkspacePath, 'subfolder');
                 const subfileAPath = path.join(subfolderPath, 'fileA.txt');
                 const subfileBPath = path.join(subfolderPath, 'fileB.txt');
-                
+
                 await vscode.workspace.fs.createDirectory(vscode.Uri.file(subfolderPath));
                 await vscode.workspace.fs.writeFile(
-                    vscode.Uri.file(subfileAPath), 
+                    vscode.Uri.file(subfileAPath),
                     Buffer.from('Test content A')
                 );
                 await vscode.workspace.fs.writeFile(
-                    vscode.Uri.file(subfileBPath), 
+                    vscode.Uri.file(subfileBPath),
                     Buffer.from('Test content B')
                 );
-                
+
                 // Open the test workspace
                 await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(testWorkspacePath));
-                
+
                 // Wait for workspace to open
                 await new Promise(resolve => setTimeout(resolve, 2000));
-                
+
                 // Call the copyProjectStructure command with the subfolder URI
                 await vscode.commands.executeCommand(
-                    'snapsource.copyProjectStructure', 
+                    'snapsource.copyProjectStructure',
                     vscode.Uri.file(subfolderPath)
                 );
-                
+
                 // Wait for the command to complete
                 await new Promise(resolve => setTimeout(resolve, 3000));
-                
+
                 // Read the clipboard content
                 const clipboardContent = await vscode.env.clipboard.readText();
-                
+
                 // Verify the clipboard content only includes the subfolder structure
                 assert.ok(clipboardContent.includes('subfolder/'), 'Should include subfolder name at the top');
                 assert.ok(clipboardContent.includes('fileA.txt'), 'Should include subfolder files');
                 assert.ok(clipboardContent.includes('fileB.txt'), 'Should include subfolder files');
                 assert.ok(!clipboardContent.includes('src/config'), 'Should not include workspace root files');
-                
+
             } finally {
                 // Cleanup
                 try {
@@ -651,52 +651,52 @@ suite('Copy4AI Extension Test Suite', () => {
             }
         });
 
-        test('Should handle encoding issues gracefully and continue processing other files', async function() {
+        test('Should handle encoding issues gracefully and continue processing other files', async function () {
             this.timeout(15000); // Increase timeout for this test
-            
+
             // Get the test workspace path
             const testWorkspacePath = path.join(__dirname, 'testWorkspace');
-            
+
             try {
                 // Open the test workspace (it already has UTF-16 LE requirements.txt and other files)
                 await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(testWorkspacePath));
-                
+
                 // Wait for workspace to open
                 await new Promise(resolve => setTimeout(resolve, 2000));
-                
+
                 // Copy the entire test workspace content
                 await vscode.commands.executeCommand(
-                    'snapsource.copyToClipboard', 
+                    'snapsource.copyToClipboard',
                     vscode.Uri.file(testWorkspacePath)
                 );
-                
+
                 // Wait for the command to complete
                 await new Promise(resolve => setTimeout(resolve, 3000));
-                
+
                 // Read the clipboard content
                 const clipboardContent = await vscode.env.clipboard.readText();
-                
+
 
                 // Verify that UTF-16 file is handled gracefully
                 assert.ok(clipboardContent.includes('requirements.txt'), 'Should include requirements.txt file path');
-                assert.ok(clipboardContent.includes('Binary file content not included') || 
-                         clipboardContent.includes('unsupported encoding') ||
-                         clipboardContent.includes('UTF-16') ||
-                         clipboardContent.includes('convert to UTF-8') ||
-                         clipboardContent.includes('appears to be UTF-16'), 
-                         'Should indicate that requirements.txt content is not included due to encoding/binary detection');
-                
+                assert.ok(clipboardContent.includes('Binary file content not included') ||
+                    clipboardContent.includes('unsupported encoding') ||
+                    clipboardContent.includes('UTF-16') ||
+                    clipboardContent.includes('convert to UTF-8') ||
+                    clipboardContent.includes('appears to be UTF-16'),
+                    'Should indicate that requirements.txt content is not included due to encoding/binary detection');
+
                 // Verify that other Python files are still processed despite the encoding error
                 assert.ok(clipboardContent.includes('starthanders.py'), 'Should include starthanders.py file');
                 assert.ok(clipboardContent.includes('urlhandlers.py'), 'Should include urlhandlers.py file');
                 assert.ok(clipboardContent.includes('def start_handler'), 'Should include content from starthanders.py');
                 assert.ok(clipboardContent.includes('def handle_url'), 'Should include content from urlhandlers.py');
-                
+
                 // Verify all files are listed in the project structure, even if content can't be read
-                assert.ok(clipboardContent.includes('Project Structure') || 
-                         clipboardContent.includes('File Contents'), 
-                         'Should include structure/content headers');
-                
+                assert.ok(clipboardContent.includes('Project Structure') ||
+                    clipboardContent.includes('File Contents'),
+                    'Should include structure/content headers');
+
             } finally {
                 // Note: We don't clean up the test files as they're part of the test workspace
             }
@@ -704,12 +704,12 @@ suite('Copy4AI Extension Test Suite', () => {
 
         test('createContentExclusionFn should match files by glob pattern', () => {
             const workspacePath = path.resolve('/mock/workspace');
-            
+
             const shouldExcludeContent = IgnoreUtils.createContentExclusionFn(
                 workspacePath,
                 ['**/*.svg', '**/*.png', 'assets/**']
             );
-            
+
             const testCases = [
                 { file: path.join(workspacePath, 'icon.svg'), expected: true },
                 { file: path.join(workspacePath, 'images', 'logo.png'), expected: true },
@@ -717,10 +717,10 @@ suite('Copy4AI Extension Test Suite', () => {
                 { file: path.join(workspacePath, 'src', 'app.js'), expected: false },
                 { file: path.join(workspacePath, 'README.md'), expected: false },
             ];
-            
+
             testCases.forEach(tc => {
                 const result = shouldExcludeContent(tc.file);
-                assert.strictEqual(result, tc.expected, 
+                assert.strictEqual(result, tc.expected,
                     `${tc.file} should ${tc.expected ? 'be excluded' : 'not be excluded'}`);
             });
         });
@@ -728,9 +728,253 @@ suite('Copy4AI Extension Test Suite', () => {
         test('createContentExclusionFn should return false when patterns empty', () => {
             const workspacePath = path.resolve('/mock/workspace');
             const shouldExcludeContent = IgnoreUtils.createContentExclusionFn(workspacePath, []);
-            
+
             assert.strictEqual(shouldExcludeContent(path.join(workspacePath, 'any.svg')), false);
             assert.strictEqual(shouldExcludeContent(path.join(workspacePath, 'file.png')), false);
+        });
+    });
+
+    suite('TreeBuilder', () => {
+        const { TreeBuilder } = require('../out/utils/treeBuilder');
+        const testWorkspacePath = path.join(__dirname, 'testWorkspace');
+
+        test('Should build tree structure from directory', async function () {
+            this.timeout(10000);
+
+            const ig = IgnoreUtils.createIgnoreInstance(['*.log'], true);
+            await IgnoreUtils.addGitIgnoreRules(testWorkspacePath, ig);
+
+            const options = {
+                ig,
+                isExcludedByAbsolutePath: () => false,
+                shouldExcludeContent: () => false,
+                maxFileSize: 1024 * 1024,
+                ignoreDotFiles: true,
+                ignoreGitIgnore: true,
+            };
+
+            const tree = await TreeBuilder.buildTree(
+                testWorkspacePath,
+                testWorkspacePath,
+                options,
+                false
+            );
+
+            assert.ok(Array.isArray(tree), 'Tree should be an array');
+            assert.ok(tree.length > 0, 'Tree should have entries');
+
+            // Check that folders come with type and children
+            const srcFolder = tree.find(n => n.name === 'src');
+            if (srcFolder) {
+                assert.strictEqual(srcFolder.type, 'folder', 'src should be a folder');
+                assert.ok(Array.isArray(srcFolder.children), 'Folder should have children array');
+            }
+
+            // Check that files come with type 'file'
+            const appFile = tree.find(n => n.name === 'app.js');
+            assert.ok(appFile, 'Should include app.js');
+            assert.strictEqual(appFile.type, 'file', 'app.js should be type file');
+            assert.strictEqual(appFile.relativePath, 'app.js', 'relativePath should be correct');
+        });
+
+        test('Should mark ignored files when includeIgnored is true', async function () {
+            this.timeout(10000);
+
+            // Create an ignore instance that ignores Python files
+            const ig = IgnoreUtils.createIgnoreInstance(['*.py'], false);
+
+            const options = {
+                ig,
+                isExcludedByAbsolutePath: () => false,
+                shouldExcludeContent: () => false,
+                maxFileSize: 1024 * 1024,
+                ignoreDotFiles: false,
+                ignoreGitIgnore: false,
+            };
+
+            const tree = await TreeBuilder.buildTree(
+                testWorkspacePath,
+                testWorkspacePath,
+                options,
+                true // includeIgnored
+            );
+
+            // Find a .py file — it should exist but be marked as ignored
+            const pyFile = tree.find(n => n.name === 'starthanders.py');
+            assert.ok(pyFile, 'Should include starthanders.py when includeIgnored is true');
+            assert.strictEqual(pyFile.ignored, true, 'Python file should be marked as ignored');
+
+            // Non-ignored files should have ignored === false
+            const appFile = tree.find(n => n.name === 'app.js');
+            assert.ok(appFile, 'Should include app.js');
+            assert.strictEqual(appFile.ignored, false, 'app.js should not be marked as ignored');
+        });
+
+        test('Should exclude ignored files when includeIgnored is false', async function () {
+            this.timeout(10000);
+
+            const ig = IgnoreUtils.createIgnoreInstance(['*.py'], false);
+
+            const options = {
+                ig,
+                isExcludedByAbsolutePath: () => false,
+                shouldExcludeContent: () => false,
+                maxFileSize: 1024 * 1024,
+                ignoreDotFiles: false,
+                ignoreGitIgnore: false,
+            };
+
+            const tree = await TreeBuilder.buildTree(
+                testWorkspacePath,
+                testWorkspacePath,
+                options,
+                false // includeIgnored
+            );
+
+            const pyFile = tree.find(n => n.name === 'starthanders.py');
+            assert.strictEqual(pyFile, undefined, 'Should not include .py files when includeIgnored is false');
+
+            const appFile = tree.find(n => n.name === 'app.js');
+            assert.ok(appFile, 'Should still include non-ignored files');
+        });
+
+        test('Should respect absolute path exclusions', async function () {
+            this.timeout(10000);
+
+            const ig = IgnoreUtils.createIgnoreInstance([], false);
+
+            const isExcludedByAbsolutePath = IgnoreUtils.createAbsolutePathExclusionFn(
+                testWorkspacePath,
+                [path.join('src', 'config')]
+            );
+
+            const options = {
+                ig,
+                isExcludedByAbsolutePath,
+                shouldExcludeContent: () => false,
+                maxFileSize: 1024 * 1024,
+                ignoreDotFiles: false,
+                ignoreGitIgnore: false,
+            };
+
+            const tree = await TreeBuilder.buildTree(
+                testWorkspacePath,
+                testWorkspacePath,
+                options,
+                false
+            );
+
+            // src folder should exist
+            const srcFolder = tree.find(n => n.name === 'src');
+
+            // If src/config was the only child, src may still appear but config should not
+            if (srcFolder && srcFolder.children) {
+                const configFolder = srcFolder.children.find(n => n.name === 'config');
+                assert.strictEqual(configFolder, undefined, 'src/config should be excluded by absolute path');
+            }
+
+            // vendor/package/config should still be there
+            const vendorFolder = tree.find(n => n.name === 'vendor');
+            assert.ok(vendorFolder, 'vendor folder should still exist');
+        });
+
+        test('collectNonIgnoredFiles should return only non-ignored file paths', () => {
+            const mockTree = [
+                {
+                    name: 'src',
+                    relativePath: 'src',
+                    type: 'folder',
+                    ignored: false,
+                    children: [
+                        { name: 'app.js', relativePath: 'src/app.js', type: 'file', ignored: false },
+                        { name: 'secret.env', relativePath: 'src/secret.env', type: 'file', ignored: true },
+                    ]
+                },
+                { name: 'README.md', relativePath: 'README.md', type: 'file', ignored: false },
+                { name: '.gitignore', relativePath: '.gitignore', type: 'file', ignored: true },
+            ];
+
+            const result = TreeBuilder.collectNonIgnoredFiles(mockTree);
+
+            assert.ok(Array.isArray(result), 'Should return an array');
+            assert.strictEqual(result.length, 2, 'Should return 2 non-ignored files');
+            assert.ok(result.includes('src/app.js'), 'Should include src/app.js');
+            assert.ok(result.includes('README.md'), 'Should include README.md');
+            assert.ok(!result.includes('src/secret.env'), 'Should not include ignored file');
+            assert.ok(!result.includes('.gitignore'), 'Should not include ignored file');
+        });
+
+        test('collectNonIgnoredFiles should handle empty tree', () => {
+            const result = TreeBuilder.collectNonIgnoredFiles([]);
+            assert.ok(Array.isArray(result), 'Should return an array');
+            assert.strictEqual(result.length, 0, 'Should return empty array for empty tree');
+        });
+
+        test('collectNonIgnoredFiles should handle deeply nested structures', () => {
+            const mockTree = [
+                {
+                    name: 'a',
+                    relativePath: 'a',
+                    type: 'folder',
+                    ignored: false,
+                    children: [
+                        {
+                            name: 'b',
+                            relativePath: 'a/b',
+                            type: 'folder',
+                            ignored: false,
+                            children: [
+                                {
+                                    name: 'c',
+                                    relativePath: 'a/b/c',
+                                    type: 'folder',
+                                    ignored: false,
+                                    children: [
+                                        { name: 'deep.js', relativePath: 'a/b/c/deep.js', type: 'file', ignored: false },
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ];
+
+            const result = TreeBuilder.collectNonIgnoredFiles(mockTree);
+            assert.strictEqual(result.length, 1, 'Should find deeply nested file');
+            assert.ok(result.includes('a/b/c/deep.js'), 'Should include deeply nested file path');
+        });
+
+        test('Should sort entries: folders first, then files, both alphabetical', async function () {
+            this.timeout(10000);
+
+            const ig = IgnoreUtils.createIgnoreInstance([], false);
+
+            const options = {
+                ig,
+                isExcludedByAbsolutePath: () => false,
+                shouldExcludeContent: () => false,
+                maxFileSize: 1024 * 1024,
+                ignoreDotFiles: false,
+                ignoreGitIgnore: false,
+            };
+
+            const tree = await TreeBuilder.buildTree(
+                testWorkspacePath,
+                testWorkspacePath,
+                options,
+                false
+            );
+
+            // Check that folders come before files
+            let seenFile = false;
+            for (const node of tree) {
+                if (node.type === 'file') {
+                    seenFile = true;
+                }
+                if (node.type === 'folder' && seenFile) {
+                    assert.fail('Folders should come before files in tree');
+                }
+            }
         });
     });
 });

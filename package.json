@@ -43,7 +43,6 @@
   ],
   "preview": false,
   "pricing": "Free",
-  
   "main": "./out/extension.js",
   "activationEvents": [],
   "contributes": {
@@ -63,6 +62,10 @@
       {
         "command": "snapsource.toggleDotFiles",
         "title": "Toggle Dot Files Inclusion (Copy4AI)"
+      },
+      {
+        "command": "snapsource.selectAndCopy",
+        "title": "Select & Copy (Copy4AI)"
       }
     ],
     "menus": {
@@ -80,6 +83,10 @@
         },
         {
           "command": "snapsource.toggleDotFiles"
+        },
+        {
+          "command": "snapsource.selectAndCopy",
+          "when": "false"
         }
       ],
       "explorer/context": [
@@ -91,6 +98,11 @@
         {
           "command": "snapsource.copyProjectStructure",
           "group": "copy4ai@2"
+        },
+        {
+          "command": "snapsource.selectAndCopy",
+          "group": "copy4ai@3",
+          "when": "explorerResourceIsFolder"
         }
       ],
       "editor/context": [
@@ -123,13 +135,17 @@
             "properties": {
               "paths": {
                 "type": "array",
-                "items": { "type": "string" },
+                "items": {
+                  "type": "string"
+                },
                 "description": "Absolute paths relative to workspace root to exclude (e.g., 'src/config')",
                 "default": []
               },
               "patterns": {
                 "type": "array",
-                "items": { "type": "string" },
+                "items": {
+                  "type": "string"
+                },
                 "description": "Glob patterns to exclude (e.g., '*.tmp', 'build/**')",
                 "default": [
                   "node_modules",

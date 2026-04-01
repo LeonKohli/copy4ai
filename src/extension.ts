@@ -9,9 +9,11 @@ import { ProjectTreeGenerator } from './utils/projectTree';
 import { OutputFormatter } from './utils/formatters';
 import { IgnoreUtils } from './utils/ignoreUtils';
 import { TokenCounter } from './utils/tokenCounter';
+import { FilePickerPanel } from './filePickerPanel';
+
 
 export class Copy4AIService {
-    
+
     public static async copyToClipboard(
         uri?: vscode.Uri,
         uris?: ReadonlyArray<vscode.Uri>,
@@ -24,36 +26,36 @@ export class Copy4AIService {
         }, async (progress: ProgressReporter, token: CancellationToken) => {
             try {
                 progress.report({ increment: 0, message: "Initializing..." });
-                
+
                 const config = ConfigurationService.getConfiguration();
                 const excludeConfig = ConfigurationService.getExcludeConfig();
-                
+
                 // Options override global configuration for command-specific behavior
                 // This allows different commands to use different settings without changing user preferences
-                const includeProjectTree = options.projectTreeOnly ? true : 
-                                         (options.includeProjectTree !== undefined ? 
-                                         options.includeProjectTree : 
-                                         config.includeProjectTree);
-                
+                const includeProjectTree = options.projectTreeOnly ? true :
+                    (options.includeProjectTree !== undefined ?
+                        options.includeProjectTree :
+                        config.includeProjectTree);
+
                 const itemsToProcess = uris && uris.length > 0 ? uris : (uri ? [uri] : []);
-                
+
                 if (itemsToProcess.length === 0) {
                     throw new Error('No files or folders selected');
                 }
-                
+
                 progress.report({ increment: 10, message: "Setting up file filters..." });
-                
+
                 const workspaceFolder = vscode.workspace.getWorkspaceFolder(itemsToProcess[0]);
                 if (!workspaceFolder) {
                     throw new Error('No workspace folder found');
                 }
-                
+
                 const ig = IgnoreUtils.createIgnoreInstance(excludeConfig.patterns, config.ignoreDotFiles);
-                
+
                 if (config.ignoreGitIgnore) {
                     await IgnoreUtils.addGitIgnoreRules(workspaceFolder.uri.fsPath, ig);
                 }
-                
+
                 const isExcludedByAbsolutePath = IgnoreUtils.createAbsolutePathExclusionFn(
                     workspaceFolder.uri.fsPath,
                     excludeConfig.paths
@@ -63,10 +65,10 @@ export class Copy4AIService {
                     workspaceFolder.uri.fsPath,
                     config.excludeContentPatterns
                 );
-                
+
                 let projectRootPath = workspaceFolder.uri.fsPath;
                 let projectRootName = '';
-                
+
                 // Allow using selected folder as root for more focused project views
                 // Useful when working with large monorepos or when sharing specific subsections
                 if (options.useSelectedFolderAsRoot && itemsToProcess[0]) {
@@ -80,7 +82,7 @@ export class Copy4AIService {
                         console.error('Error using selected folder as root:', error);
                     }
                 }
-                
+
                 progress.report({ increment: 15, message: "Generating project tree..." });
                 let projectTree = '';
                 if (includeProjectTree) {
@@ -92,17 +94,17 @@ export class Copy4AIService {
                         '',
                         isExcludedByAbsolutePath
                     );
-                    
+
                     if (options.useSelectedFolderAsRoot && projectRootName) {
                         projectTree = projectRootName + '\n' + projectTree;
                     }
                 }
-                
+
                 let processedContent: FileContent[] = [];
-                
+
                 if (!options.projectTreeOnly) {
                     progress.report({ increment: 20, message: "Processing files..." });
-                    
+
                     const processOptions: ProcessFileOptions = {
                         maxFileSize: config.maxFileSize,
                         compressCode: config.compressCode,
@@ -110,20 +112,20 @@ export class Copy4AIService {
                         isExcludedByAbsolutePath,
                         shouldExcludeContent
                     };
-                    
+
                     const totalItems = itemsToProcess.length;
                     for (let i = 0; i < totalItems; i++) {
                         if (token.isCancellationRequested) {
                             throw new Error('Operation cancelled');
                         }
-                        
+
                         const item = itemsToProcess[i];
                         const progressPercent = Math.floor(20 + ((i / totalItems) * 40));
-                        progress.report({ 
-                            increment: progressPercent / totalItems, 
-                            message: `Processing ${i+1}/${totalItems}: ${path.basename(item.fsPath)}` 
+                        progress.report({
+                            increment: progressPercent / totalItems,
+                            message: `Processing ${i + 1}/${totalItems}: ${path.basename(item.fsPath)}`
                         });
-                        
+
                         const stats = await fs.stat(item.fsPath);
                         if (stats.isDirectory()) {
                             const dirResults = await FileProcessor.processDirectory(
@@ -146,9 +148,9 @@ export class Copy4AIService {
                         }
                     }
                 }
-                
+
                 progress.report({ increment: 10, message: "Formatting output..." });
-                
+
                 let formattedContent: string;
                 if (options.projectTreeOnly) {
                     formattedContent = OutputFormatter.formatProjectStructureOnly(
@@ -162,10 +164,10 @@ export class Copy4AIService {
                         processedContent
                     );
                 }
-                
+
                 progress.report({ increment: 5, message: "Copying to clipboard..." });
                 await vscode.env.clipboard.writeText(formattedContent);
-                
+
                 // Optional token counting helps users understand LLM input costs and limits
                 if (config.enableTokenCounting && !options.projectTreeOnly) {
                     progress.report({ increment: 5, message: "Counting tokens..." });
@@ -179,7 +181,7 @@ export class Copy4AIService {
                 } else {
                     vscode.window.showInformationMessage(`Copied to clipboard: ${config.outputFormat} format`);
                 }
-                
+
             } catch (error) {
                 const errorMessage = error instanceof Error ? error.message : 'Unknown error';
                 vscode.window.showErrorMessage(`Copy4AI Error: ${errorMessage}`);
@@ -200,21 +202,21 @@ export function activate(context: vscode.ExtensionContext): void {
             }
         }
     );
-    
+
     const copyProjectStructureCommand = vscode.commands.registerCommand(
         'snapsource.copyProjectStructure',
         async (uri?: vscode.Uri) => {
             try {
                 let targetUri = uri;
-                
+
                 if (!targetUri && (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0)) {
                     throw new Error('No workspace open. Please open a workspace to copy project structure.');
                 }
-                
+
                 if (!targetUri && vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
                     targetUri = vscode.workspace.workspaceFolders[0].uri;
                 }
-                
+
                 await Copy4AIService.copyToClipboard(targetUri, undefined, {
                     projectTreeOnly: true,
                     useSelectedFolderAsRoot: true
@@ -225,7 +227,7 @@ export function activate(context: vscode.ExtensionContext): void {
             }
         }
     );
-    
+
     const toggleProjectTreeCommand = vscode.commands.registerCommand(
         'snapsource.toggleProjectTree',
         async () => {
@@ -237,7 +239,7 @@ export function activate(context: vscode.ExtensionContext): void {
             }
         }
     );
-    
+
     const toggleDotFilesCommand = vscode.commands.registerCommand(
         'snapsource.toggleDotFiles',
         async () => {
@@ -249,16 +251,48 @@ export function activate(context: vscode.ExtensionContext): void {
             }
         }
     );
-    
+
+    const selectAndCopyCommand = vscode.commands.registerCommand(
+        'snapsource.selectAndCopy',
+        async (uri?: vscode.Uri) => {
+            try {
+                let targetUri = uri;
+
+                if (!targetUri && vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
+                    targetUri = vscode.workspace.workspaceFolders[0].uri;
+                }
+
+                if (!targetUri) {
+                    throw new Error('No folder selected and no workspace open.');
+                }
+
+                // If user right-clicked a file, use its parent directory
+                const stat = await vscode.workspace.fs.stat(targetUri);
+                const folderPath = stat.type === vscode.FileType.Directory
+                    ? targetUri.fsPath
+                    : require('path').dirname(targetUri.fsPath);
+
+                await FilePickerPanel.createOrShow(
+                    context.extensionUri,
+                    folderPath
+                );
+            } catch (error) {
+                const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                vscode.window.showErrorMessage(`Copy4AI Error: ${errorMessage}`);
+            }
+        }
+    );
+
     context.subscriptions.push(
         copyToClipboardCommand,
         copyProjectStructureCommand,
         toggleProjectTreeCommand,
-        toggleDotFilesCommand
+        toggleDotFilesCommand,
+        selectAndCopyCommand
     );
 }
 
-export function deactivate(): void {}
+export function deactivate(): void { }
 
 // Export modern API for testing and external use
 export { OutputFormatter } from './utils/formatters';
@@ -266,4 +300,5 @@ export { FileProcessor } from './utils/fileProcessor';
 export { IgnoreUtils } from './utils/ignoreUtils';
 export { ConfigurationService } from './utils/configuration';
 export { ProjectTreeGenerator } from './utils/projectTree';
-export { TokenCounter } from './utils/tokenCounter'; 
+export { TokenCounter } from './utils/tokenCounter';
+export { TreeBuilder } from './utils/treeBuilder';
