@@ -2,6 +2,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { isBinaryFile } from 'isbinaryfile';
 import { FileContent, ProcessFileOptions } from '../types';
+import { IgnoreUtils } from './ignoreUtils';
 
 export class FileProcessor {
     
@@ -13,9 +14,8 @@ export class FileProcessor {
     ): Promise<FileContent | null> {
         try {
             const relativePath = path.relative(rootPath, filePath);
-            const relativePosix = relativePath.split(path.sep).join('/');
-            
-            if (ig.ignores(relativePosix)) {
+
+            if (IgnoreUtils.isIgnored(ig, relativePath, false)) {
                 return null;
             }
             
@@ -133,8 +133,7 @@ export class FileProcessor {
             // Check if the directory itself should be ignored before reading its contents
             // This prevents unnecessary file system operations on large ignored directories
             const relativeDirPath = path.relative(rootPath, dirPath);
-            const relativeDirPosix = relativeDirPath.split(path.sep).join('/');
-            if (relativeDirPath && ig.ignores(relativeDirPosix)) {
+            if (IgnoreUtils.isIgnored(ig, relativeDirPath, true)) {
                 return results;
             }
             

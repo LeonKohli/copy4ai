@@ -1,5 +1,6 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { IgnoreUtils } from './ignoreUtils';
 
 export class ProjectTreeGenerator {
     
@@ -27,8 +28,7 @@ export class ProjectTreeGenerator {
             // This optimization prevents reading large ignored directories like node_modules
             if (currentDepth > 0) {
                 const relativePath = path.relative(rootPath, dir);
-                const relativePathPosix = relativePath.split(path.sep).join('/');
-                if (relativePath && ig.ignores(relativePathPosix)) {
+                if (IgnoreUtils.isIgnored(ig, relativePath, true)) {
                     return '';
                 }
                 if (isExcludedByAbsolutePath(dir)) {
@@ -41,13 +41,13 @@ export class ProjectTreeGenerator {
 
             for (const entry of entries) {
                 const filePath = path.join(dir, entry.name);
-                const rootRelative = path.relative(rootPath, filePath).split(path.sep).join('/');
+                const rootRelative = path.relative(rootPath, filePath);
 
                 let isIgnored = false;
                 let isExcludedByPath = false;
 
                 try {
-                    isIgnored = ig.ignores(rootRelative);
+                    isIgnored = IgnoreUtils.isIgnored(ig, rootRelative, entry.isDirectory());
                 } catch (error) {
                     console.error(`Error checking ignore pattern for ${rootRelative}: ${error}`);
                     isIgnored = false;

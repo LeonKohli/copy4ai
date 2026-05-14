@@ -493,6 +493,46 @@ suite('Copy4AI Extension Test Suite', () => {
             assert.strictEqual(isExcludedByAbsolutePath(filePath3), true, 'src/config/settings.json should be excluded');
         });
         
+        test('Should respect trailing-slash directory patterns (issue #21)', () => {
+            // Patterns ending with `/` (e.g. `build/`) should match directories.
+            // The `ignore` library requires the checked path to end with `/` for these to match.
+            // IgnoreUtils.isIgnored handles this when isDirectory=true is passed.
+            const ig = IgnoreUtils.createIgnoreInstance(['src-tauri/icons/', 'build/', 'dist/']);
+
+            // Directory checks: should be excluded
+            assert.strictEqual(IgnoreUtils.isIgnored(ig, path.join('src-tauri', 'icons'), true), true,
+                'src-tauri/icons directory should be ignored by `src-tauri/icons/` pattern');
+            assert.strictEqual(IgnoreUtils.isIgnored(ig, 'build', true), true,
+                'build directory should be ignored by `build/` pattern');
+            assert.strictEqual(IgnoreUtils.isIgnored(ig, path.join('packages', 'app', 'dist'), true), true,
+                'nested dist directory should be ignored (unanchored pattern)');
+
+            // Files inside the directory should also be excluded
+            assert.strictEqual(IgnoreUtils.isIgnored(ig, path.join('src-tauri', 'icons', 'logo.png'), false), true,
+                'file inside src-tauri/icons should be ignored');
+
+            // Same-named file (not dir) should NOT be ignored — `foo/` only matches directories
+            assert.strictEqual(IgnoreUtils.isIgnored(ig, 'build', false), false,
+                'a file named `build` should not match the `build/` directory-only pattern');
+
+            // Similarly-named directories should not match
+            assert.strictEqual(IgnoreUtils.isIgnored(ig, 'build-tools', true), false,
+                'build-tools should not match `build/` pattern');
+        });
+
+        test('Should treat patterns without trailing slash as matching both files and dirs', () => {
+            const ig = IgnoreUtils.createIgnoreInstance(['node_modules', '*.log']);
+
+            assert.strictEqual(IgnoreUtils.isIgnored(ig, 'node_modules', true), true,
+                'node_modules dir should be ignored');
+            assert.strictEqual(IgnoreUtils.isIgnored(ig, 'node_modules', false), true,
+                'file named node_modules should also be ignored (pattern has no trailing slash)');
+            assert.strictEqual(IgnoreUtils.isIgnored(ig, 'app.log', false), true,
+                '*.log file should be ignored');
+            assert.strictEqual(IgnoreUtils.isIgnored(ig, '', true), false,
+                'empty relative path should not be ignored');
+        });
+
         test('Should handle combined exclusion patterns correctly', () => {
             // Create a mock workspace path with platform-independent path
             const workspacePath = path.resolve('/mock/workspace');

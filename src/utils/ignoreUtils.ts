@@ -16,6 +16,16 @@ export class IgnoreUtils {
         return ig;
     }
 
+    // Per gitignore spec, patterns ending in `/` (e.g. `build/`) match directories only.
+    // The `ignore` lib needs a trailing slash on the checked path to recognize it as a dir.
+    public static isIgnored(ig: any, relativePath: string, isDirectory: boolean): boolean {
+        if (!relativePath) {
+            return false;
+        }
+        const posix = relativePath.split(path.sep).join('/');
+        return ig.ignores(isDirectory ? posix + '/' : posix);
+    }
+
     public static async addGitIgnoreRules(rootPath: string, ig: any): Promise<void> {
         try {
             const gitIgnorePath = path.join(rootPath, '.gitignore');
