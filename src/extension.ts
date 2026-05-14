@@ -1,6 +1,4 @@
 import * as vscode from 'vscode';
-import * as fs from 'fs/promises';
-import * as path from 'path';
 
 import { Copy4AIOptions, FileContent, ProcessFileOptions, ProgressReporter, CancellationToken } from './types';
 import { ConfigurationService } from './utils/configuration';
@@ -9,9 +7,10 @@ import { ProjectTreeGenerator } from './utils/projectTree';
 import { OutputFormatter } from './utils/formatters';
 import { IgnoreUtils } from './utils/ignoreUtils';
 import { TokenCounter } from './utils/tokenCounter';
+import { UriUtils } from './utils/uriUtils';
 
 export class Copy4AIService {
-    
+
     public static async copyToClipboard(
         uri?: vscode.Uri,
         uris?: ReadonlyArray<vscode.Uri>,
@@ -24,119 +23,111 @@ export class Copy4AIService {
         }, async (progress: ProgressReporter, token: CancellationToken) => {
             try {
                 progress.report({ increment: 0, message: "Initializing..." });
-                
-                const config = ConfigurationService.getConfiguration();
-                const excludeConfig = ConfigurationService.getExcludeConfig();
-                
-                // Options override global configuration for command-specific behavior
-                // This allows different commands to use different settings without changing user preferences
-                const includeProjectTree = options.projectTreeOnly ? true : 
-                                         (options.includeProjectTree !== undefined ? 
-                                         options.includeProjectTree : 
-                                         config.includeProjectTree);
-                
-                const itemsToProcess = uris && uris.length > 0 ? uris : (uri ? [uri] : []);
-                
+                const itemsToProcess = this.resolveItemsToProcess(uri, uris);
+
                 if (itemsToProcess.length === 0) {
                     throw new Error('No files or folders selected');
                 }
-                
+
+                const workspaceFolder = this.getCommonWorkspaceFolder(itemsToProcess);
+                const config = ConfigurationService.getConfiguration(itemsToProcess[0]);
+                const excludeConfig = ConfigurationService.getExcludeConfig(itemsToProcess[0]);
+
+                // Options override global configuration for command-specific behavior
+                // This allows different commands to use different settings without changing user preferences
+                const includeProjectTree = options.projectTreeOnly ? true :
+                                         (options.includeProjectTree !== undefined ?
+                                         options.includeProjectTree :
+                                         config.includeProjectTree);
+
                 progress.report({ increment: 10, message: "Setting up file filters..." });
-                
-                const workspaceFolder = vscode.workspace.getWorkspaceFolder(itemsToProcess[0]);
-                if (!workspaceFolder) {
-                    throw new Error('No workspace folder found');
-                }
-                
+
                 const ig = IgnoreUtils.createIgnoreInstance(excludeConfig.patterns, config.ignoreDotFiles);
-                
+
                 if (config.ignoreGitIgnore) {
-                    await IgnoreUtils.addGitIgnoreRules(workspaceFolder.uri.fsPath, ig);
+                    await IgnoreUtils.addGitIgnoreRules(workspaceFolder.uri, ig);
                 }
-                
-                const isExcludedByAbsolutePath = IgnoreUtils.createAbsolutePathExclusionFn(
-                    workspaceFolder.uri.fsPath,
+
+                const isExcludedByResourcePath = IgnoreUtils.createResourcePathExclusionFn(
+                    workspaceFolder.uri,
                     excludeConfig.paths
                 );
 
-                const shouldExcludeContent = IgnoreUtils.createContentExclusionFn(
-                    workspaceFolder.uri.fsPath,
+                const shouldExcludeContent = IgnoreUtils.createResourceContentExclusionFn(
+                    workspaceFolder.uri,
                     config.excludeContentPatterns
                 );
-                
-                let projectRootPath = workspaceFolder.uri.fsPath;
+
+                let projectRootUri = workspaceFolder.uri;
                 let projectRootName = '';
-                
+
                 // Allow using selected folder as root for more focused project views
                 // Useful when working with large monorepos or when sharing specific subsections
                 if (options.useSelectedFolderAsRoot && itemsToProcess[0]) {
-                    try {
-                        const stats = await fs.stat(itemsToProcess[0].fsPath);
-                        if (stats.isDirectory()) {
-                            projectRootPath = itemsToProcess[0].fsPath;
-                            projectRootName = path.basename(projectRootPath) + '/';
-                        }
-                    } catch (error) {
-                        console.error('Error using selected folder as root:', error);
+                    const stats = await vscode.workspace.fs.stat(itemsToProcess[0]);
+                    if (stats.type & vscode.FileType.Directory) {
+                        projectRootUri = itemsToProcess[0];
+                        projectRootName = `${UriUtils.basename(projectRootUri)}/`;
                     }
                 }
-                
+
                 progress.report({ increment: 15, message: "Generating project tree..." });
                 let projectTree = '';
                 if (includeProjectTree) {
                     projectTree = await ProjectTreeGenerator.generateProjectTree(
-                        projectRootPath,
+                        projectRootUri,
                         ig,
                         config.maxDepth,
                         0,
                         '',
-                        isExcludedByAbsolutePath
+                        isExcludedByResourcePath,
+                        token
                     );
-                    
+
                     if (options.useSelectedFolderAsRoot && projectRootName) {
                         projectTree = projectRootName + '\n' + projectTree;
                     }
                 }
-                
+
                 let processedContent: FileContent[] = [];
-                
+
                 if (!options.projectTreeOnly) {
                     progress.report({ increment: 20, message: "Processing files..." });
-                    
+
                     const processOptions: ProcessFileOptions = {
                         maxFileSize: config.maxFileSize,
                         compressCode: config.compressCode,
                         removeComments: config.removeComments,
-                        isExcludedByAbsolutePath,
-                        shouldExcludeContent
+                        isExcludedByResourcePath,
+                        shouldExcludeContent,
+                        cancellationToken: token
                     };
-                    
+
                     const totalItems = itemsToProcess.length;
                     for (let i = 0; i < totalItems; i++) {
                         if (token.isCancellationRequested) {
-                            throw new Error('Operation cancelled');
+                            throw new vscode.CancellationError();
                         }
-                        
+
                         const item = itemsToProcess[i];
-                        const progressPercent = Math.floor(20 + ((i / totalItems) * 40));
-                        progress.report({ 
-                            increment: progressPercent / totalItems, 
-                            message: `Processing ${i+1}/${totalItems}: ${path.basename(item.fsPath)}` 
+                        progress.report({
+                            increment: 40 / totalItems,
+                            message: `Processing ${i+1}/${totalItems}: ${UriUtils.basename(item)}`
                         });
-                        
-                        const stats = await fs.stat(item.fsPath);
-                        if (stats.isDirectory()) {
+
+                        const stats = await vscode.workspace.fs.stat(item);
+                        if (stats.type & vscode.FileType.Directory) {
                             const dirResults = await FileProcessor.processDirectory(
-                                item.fsPath,
-                                workspaceFolder.uri.fsPath,
+                                item,
+                                workspaceFolder.uri,
                                 ig,
                                 processOptions
                             );
                             processedContent.push(...dirResults);
                         } else {
                             const fileContent = await FileProcessor.processFile(
-                                item.fsPath,
-                                workspaceFolder.uri.fsPath,
+                                item,
+                                workspaceFolder.uri,
                                 ig,
                                 processOptions
                             );
@@ -146,9 +137,9 @@ export class Copy4AIService {
                         }
                     }
                 }
-                
+
                 progress.report({ increment: 10, message: "Formatting output..." });
-                
+
                 let formattedContent: string;
                 if (options.projectTreeOnly) {
                     formattedContent = OutputFormatter.formatProjectStructureOnly(
@@ -162,11 +153,10 @@ export class Copy4AIService {
                         processedContent
                     );
                 }
-                
+
                 progress.report({ increment: 5, message: "Copying to clipboard..." });
                 await vscode.env.clipboard.writeText(formattedContent);
-                
-                // Optional token counting helps users understand LLM input costs and limits
+
                 if (config.enableTokenCounting && !options.projectTreeOnly) {
                     progress.report({ increment: 5, message: "Counting tokens..." });
                     await TokenCounter.showTokenInfo(
@@ -179,13 +169,49 @@ export class Copy4AIService {
                 } else {
                     vscode.window.showInformationMessage(`Copied to clipboard: ${config.outputFormat} format`);
                 }
-                
+
             } catch (error) {
+                if (error instanceof vscode.CancellationError || token.isCancellationRequested) {
+                    vscode.window.showInformationMessage('Copy4AI: Operation cancelled.');
+                    return;
+                }
+
                 const errorMessage = error instanceof Error ? error.message : 'Unknown error';
                 vscode.window.showErrorMessage(`Copy4AI Error: ${errorMessage}`);
                 throw error;
             }
         });
+    }
+
+    private static resolveItemsToProcess(
+        uri?: vscode.Uri,
+        uris?: ReadonlyArray<vscode.Uri>
+    ): vscode.Uri[] {
+        if (uris && uris.length > 0) {
+            return [...uris];
+        }
+        if (uri) {
+            return [uri];
+        }
+
+        const activeEditorUri = vscode.window.activeTextEditor?.document.uri;
+        return activeEditorUri ? [activeEditorUri] : [];
+    }
+
+    private static getCommonWorkspaceFolder(itemsToProcess: ReadonlyArray<vscode.Uri>): vscode.WorkspaceFolder {
+        const workspaceFolder = vscode.workspace.getWorkspaceFolder(itemsToProcess[0]);
+        if (!workspaceFolder) {
+            throw new Error('No workspace folder found');
+        }
+
+        for (const item of itemsToProcess.slice(1)) {
+            const itemWorkspaceFolder = vscode.workspace.getWorkspaceFolder(item);
+            if (!itemWorkspaceFolder || itemWorkspaceFolder.uri.toString() !== workspaceFolder.uri.toString()) {
+                throw new Error('All selected files and folders must be in the same workspace folder');
+            }
+        }
+
+        return workspaceFolder;
     }
 }
 
@@ -193,63 +219,44 @@ export function activate(context: vscode.ExtensionContext): void {
     const copyToClipboardCommand = vscode.commands.registerCommand(
         'snapsource.copyToClipboard',
         async (uri?: vscode.Uri, uris?: vscode.Uri[]) => {
-            try {
-                await Copy4AIService.copyToClipboard(uri, uris);
-            } catch (error) {
-                // Error already handled in the service
-            }
+            await Copy4AIService.copyToClipboard(uri, uris);
         }
     );
-    
+
     const copyProjectStructureCommand = vscode.commands.registerCommand(
         'snapsource.copyProjectStructure',
         async (uri?: vscode.Uri) => {
-            try {
-                let targetUri = uri;
-                
-                if (!targetUri && (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0)) {
-                    throw new Error('No workspace open. Please open a workspace to copy project structure.');
-                }
-                
-                if (!targetUri && vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
-                    targetUri = vscode.workspace.workspaceFolders[0].uri;
-                }
-                
-                await Copy4AIService.copyToClipboard(targetUri, undefined, {
-                    projectTreeOnly: true,
-                    useSelectedFolderAsRoot: true
-                });
-            } catch (error) {
-                const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-                vscode.window.showErrorMessage(`Error: ${errorMessage}`);
+            let targetUri = uri;
+
+            if (!targetUri && (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0)) {
+                throw new Error('No workspace open. Please open a workspace to copy project structure.');
             }
+
+            if (!targetUri && vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
+                targetUri = vscode.workspace.workspaceFolders[0].uri;
+            }
+
+            await Copy4AIService.copyToClipboard(targetUri, undefined, {
+                projectTreeOnly: true,
+                useSelectedFolderAsRoot: true
+            });
         }
     );
-    
+
     const toggleProjectTreeCommand = vscode.commands.registerCommand(
         'snapsource.toggleProjectTree',
         async () => {
-            try {
-                await ConfigurationService.toggleProjectTree();
-            } catch (error) {
-                const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-                vscode.window.showErrorMessage(`Error toggling project tree: ${errorMessage}`);
-            }
+            await ConfigurationService.toggleProjectTree();
         }
     );
-    
+
     const toggleDotFilesCommand = vscode.commands.registerCommand(
         'snapsource.toggleDotFiles',
         async () => {
-            try {
-                await ConfigurationService.toggleDotFiles();
-            } catch (error) {
-                const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-                vscode.window.showErrorMessage(`Error toggling dot files setting: ${errorMessage}`);
-            }
+            await ConfigurationService.toggleDotFiles();
         }
     );
-    
+
     context.subscriptions.push(
         copyToClipboardCommand,
         copyProjectStructureCommand,
@@ -260,10 +267,11 @@ export function activate(context: vscode.ExtensionContext): void {
 
 export function deactivate(): void {}
 
-// Export modern API for testing and external use
+// Public API re-exports (consumed by the test suite)
 export { OutputFormatter } from './utils/formatters';
 export { FileProcessor } from './utils/fileProcessor';
 export { IgnoreUtils } from './utils/ignoreUtils';
 export { ConfigurationService } from './utils/configuration';
 export { ProjectTreeGenerator } from './utils/projectTree';
-export { TokenCounter } from './utils/tokenCounter'; 
+export { TokenCounter } from './utils/tokenCounter';
+export { UriUtils } from './utils/uriUtils';

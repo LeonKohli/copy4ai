@@ -4,8 +4,8 @@ import { Copy4AIConfiguration, ExcludeConfig } from '../types';
 export class ConfigurationService {
     private static readonly configSection = 'copy4ai';
 
-    public static getConfiguration(): Copy4AIConfiguration {
-        const config = vscode.workspace.getConfiguration(this.configSection);
+    public static getConfiguration(resource?: vscode.Uri): Copy4AIConfiguration {
+        const config = vscode.workspace.getConfiguration(this.configSection, resource);
         
         return {
             ignoreGitIgnore: config.get('ignoreGitIgnore', true),
@@ -26,8 +26,8 @@ export class ConfigurationService {
         };
     }
 
-    public static getExcludeConfig(): ExcludeConfig {
-        const config = vscode.workspace.getConfiguration(this.configSection);
+    public static getExcludeConfig(resource?: vscode.Uri): ExcludeConfig {
+        const config = vscode.workspace.getConfiguration(this.configSection, resource);
         // Preferred structured configuration
         const structured = config.get<{ paths?: string[]; patterns?: string[] }>('exclude');
         if (structured && (Array.isArray(structured.paths) || Array.isArray(structured.patterns))) {
@@ -54,9 +54,9 @@ export class ConfigurationService {
         };
     }
 
-    public static async updateConfiguration(
-        key: keyof Copy4AIConfiguration,
-        value: any,
+    public static async updateConfiguration<K extends keyof Copy4AIConfiguration>(
+        key: K,
+        value: Copy4AIConfiguration[K],
         target: vscode.ConfigurationTarget = vscode.ConfigurationTarget.Global
     ): Promise<void> {
         const config = vscode.workspace.getConfiguration(this.configSection);

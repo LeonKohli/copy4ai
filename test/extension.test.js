@@ -4,9 +4,114 @@ const {
     OutputFormatter, 
     FileProcessor, 
     IgnoreUtils, 
-    ConfigurationService 
+    ConfigurationService,
+    ProjectTreeGenerator,
+    TokenCounter
 } = require('../out/extension');
 const path = require('path');
+
+class MemoryFileSystemProvider {
+    constructor(files) {
+        this.emitter = new vscode.EventEmitter();
+        this.onDidChangeFile = this.emitter.event;
+        this.files = new Map();
+        this.directories = new Set(['/']);
+
+        for (const [filePath, content] of files) {
+            const normalizedPath = this.normalizePath(filePath);
+            this.files.set(normalizedPath, Buffer.from(content));
+            this.addParentDirectories(normalizedPath);
+        }
+    }
+
+    watch() {
+        return new vscode.Disposable(() => {});
+    }
+
+    stat(uri) {
+        const key = this.normalizePath(uri.path);
+        if (this.directories.has(key)) {
+            return { type: vscode.FileType.Directory, ctime: 0, mtime: 0, size: 0 };
+        }
+
+        const file = this.files.get(key);
+        if (file) {
+            return { type: vscode.FileType.File, ctime: 0, mtime: 0, size: file.byteLength };
+        }
+
+        throw vscode.FileSystemError.FileNotFound(uri);
+    }
+
+    readDirectory(uri) {
+        const directoryPath = this.normalizePath(uri.path);
+        const entries = new Map();
+
+        for (const candidate of this.directories) {
+            if (candidate === directoryPath) {
+                continue;
+            }
+
+            if (this.parentPath(candidate) === directoryPath) {
+                entries.set(path.posix.basename(candidate), vscode.FileType.Directory);
+            }
+        }
+
+        for (const candidate of this.files.keys()) {
+            if (this.parentPath(candidate) === directoryPath) {
+                entries.set(path.posix.basename(candidate), vscode.FileType.File);
+            }
+        }
+
+        if (entries.size === 0 && !this.directories.has(directoryPath)) {
+            throw vscode.FileSystemError.FileNotFound(uri);
+        }
+
+        return Array.from(entries.entries());
+    }
+
+    readFile(uri) {
+        const file = this.files.get(this.normalizePath(uri.path));
+        if (!file) {
+            throw vscode.FileSystemError.FileNotFound(uri);
+        }
+
+        return file;
+    }
+
+    createDirectory() {
+        throw vscode.FileSystemError.NoPermissions();
+    }
+
+    writeFile() {
+        throw vscode.FileSystemError.NoPermissions();
+    }
+
+    delete() {
+        throw vscode.FileSystemError.NoPermissions();
+    }
+
+    rename() {
+        throw vscode.FileSystemError.NoPermissions();
+    }
+
+    normalizePath(filePath) {
+        const normalized = path.posix.normalize(filePath);
+        return normalized.startsWith('/') ? normalized : `/${normalized}`;
+    }
+
+    addParentDirectories(filePath) {
+        let current = this.parentPath(filePath);
+        while (current !== '/') {
+            this.directories.add(current);
+            current = this.parentPath(current);
+        }
+    }
+
+    parentPath(filePath) {
+        const parent = path.posix.dirname(filePath);
+        return parent === '.' ? '/' : parent;
+    }
+}
 
 suite('Copy4AI Extension Test Suite', () => {
     suiteSetup(async () => {
@@ -452,6 +557,31 @@ suite('Copy4AI Extension Test Suite', () => {
                 }
             }
         });
+
+        test('Should copy active editor file when invoked without URI arguments', async function() {
+            this.timeout(10000);
+
+            const testWorkspacePath = path.join(__dirname, 'testWorkspace');
+            if (!vscode.workspace.workspaceFolders ||
+                !vscode.workspace.workspaceFolders[0].uri.fsPath.includes('testWorkspace')) {
+                await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(testWorkspacePath));
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+
+            const uri = vscode.Uri.file(path.join(testWorkspacePath, 'app.js'));
+            const document = await vscode.workspace.openTextDocument(uri);
+            await vscode.window.showTextDocument(document);
+
+            await vscode.commands.executeCommand('snapsource.copyToClipboard');
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            const clipboardContent = await vscode.env.clipboard.readText();
+            assert.ok(clipboardContent.includes('app.js'), 'Should include active editor file path');
+            assert.ok(
+                clipboardContent.includes("console.log('Hello from the test workspace!');"),
+                'Should include active editor file content'
+            );
+        });
     });
     
 
@@ -771,6 +901,69 @@ suite('Copy4AI Extension Test Suite', () => {
             
             assert.strictEqual(shouldExcludeContent(path.join(workspacePath, 'any.svg')), false);
             assert.strictEqual(shouldExcludeContent(path.join(workspacePath, 'file.png')), false);
+        });
+
+        test('Should process virtual file system resources through VS Code workspace.fs', async () => {
+            const provider = new MemoryFileSystemProvider([
+                ['/project/.gitignore', 'ignored.txt\n'],
+                ['/project/src/app.ts', 'export const answer = 42;\n'],
+                ['/project/src/ignored.txt', 'should not be copied\n']
+            ]);
+            const disposable = vscode.workspace.registerFileSystemProvider(
+                'copy4ai-test',
+                provider,
+                { isReadonly: true }
+            );
+
+            try {
+                const rootUri = vscode.Uri.parse('copy4ai-test:/project');
+                const ig = IgnoreUtils.createIgnoreInstance([], true);
+                await IgnoreUtils.addGitIgnoreRules(rootUri, ig);
+
+                const tokenSource = new vscode.CancellationTokenSource();
+                try {
+                    const isExcludedByResourcePath = IgnoreUtils.createResourcePathExclusionFn(rootUri, []);
+                    const shouldExcludeContent = IgnoreUtils.createResourceContentExclusionFn(rootUri, []);
+
+                    const projectTree = await ProjectTreeGenerator.generateProjectTree(
+                        rootUri,
+                        ig,
+                        5,
+                        0,
+                        '',
+                        isExcludedByResourcePath,
+                        tokenSource.token
+                    );
+                    assert.ok(projectTree.includes('src'), 'Should include virtual directory in project tree');
+                    assert.ok(projectTree.includes('app.ts'), 'Should include virtual file in project tree');
+                    assert.ok(!projectTree.includes('ignored.txt'), 'Should respect .gitignore in virtual project tree');
+
+                    const content = await FileProcessor.processDirectory(
+                        rootUri,
+                        rootUri,
+                        ig,
+                        {
+                            maxFileSize: 1024 * 1024,
+                            compressCode: false,
+                            removeComments: false,
+                            isExcludedByResourcePath,
+                            shouldExcludeContent,
+                            cancellationToken: tokenSource.token
+                        }
+                    );
+
+                    assert.deepStrictEqual(
+                        content.map(file => file.path).sort(),
+                        ['src/app.ts'],
+                        'Should only copy non-ignored virtual files'
+                    );
+                    assert.strictEqual(content[0].content, 'export const answer = 42;\n');
+                } finally {
+                    tokenSource.dispose();
+                }
+            } finally {
+                disposable.dispose();
+            }
         });
     });
 });

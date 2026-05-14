@@ -43,25 +43,54 @@
   ],
   "preview": false,
   "pricing": "Free",
+  "capabilities": {
+    "virtualWorkspaces": true,
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "Copy commands work in Restricted Mode, but workspace-defined Copy4AI settings are ignored until the workspace is trusted.",
+      "restrictedConfigurations": [
+        "copy4ai.exclude",
+        "copy4ai.ignoreGitIgnore",
+        "copy4ai.ignoreDotFiles",
+        "copy4ai.maxDepth",
+        "copy4ai.excludePaths",
+        "copy4ai.excludePatterns",
+        "copy4ai.outputFormat",
+        "copy4ai.maxFileSize",
+        "copy4ai.includeProjectTree",
+        "copy4ai.excludeContentPatterns",
+        "copy4ai.compressCode",
+        "copy4ai.removeComments",
+        "copy4ai.llmModel",
+        "copy4ai.maxTokens",
+        "copy4ai.enableTokenWarning",
+        "copy4ai.enableTokenCounting"
+      ]
+    }
+  },
   "activationEvents": [],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
         "command": "snapsource.copyToClipboard",
-        "title": "Copy to Clipboard (Copy4AI)"
+        "title": "Copy to Clipboard (Copy4AI)",
+        "category": "Copy4AI"
       },
       {
         "command": "snapsource.copyProjectStructure",
-        "title": "Copy Project Structure (Copy4AI)"
+        "title": "Copy Project Structure (Copy4AI)",
+        "category": "Copy4AI"
       },
       {
         "command": "snapsource.toggleProjectTree",
-        "title": "Toggle Project Tree (Copy4AI)"
+        "title": "Toggle Project Tree",
+        "category": "Copy4AI"
       },
       {
         "command": "snapsource.toggleDotFiles",
-        "title": "Toggle Dot Files Inclusion (Copy4AI)"
+        "title": "Toggle Dot Files Inclusion",
+        "category": "Copy4AI"
       }
     ],
     "menus": {

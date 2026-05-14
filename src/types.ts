@@ -48,8 +48,9 @@ export interface ProcessFileOptions {
     maxFileSize: number;
     compressCode: boolean;
     removeComments: boolean;
-    isExcludedByAbsolutePath: (filePath: string) => boolean;
-    shouldExcludeContent: (filePath: string) => boolean;
+    isExcludedByResourcePath: (resourceUri: vscode.Uri) => boolean;
+    shouldExcludeContent: (resourceUri: vscode.Uri) => boolean;
+    cancellationToken: vscode.CancellationToken;
 }
 
 // Supported LLM models for token counting and cost estimation

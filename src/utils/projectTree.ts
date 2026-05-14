@@ -1,67 +1,77 @@
-import * as fs from 'fs/promises';
-import * as path from 'path';
+import * as vscode from 'vscode';
+import type ignore from 'ignore';
 import { IgnoreUtils } from './ignoreUtils';
+import { UriUtils } from './uriUtils';
 
 export class ProjectTreeGenerator {
     
     public static async generateProjectTree(
-        dir: string,
-        ig: any,
+        dir: vscode.Uri,
+        ig: ignore.Ignore,
         maxDepth: number,
         currentDepth: number = 0,
         prefix: string = '',
-        isExcludedByAbsolutePath: (filePath: string) => boolean,
-        rootPath?: string
+        isExcludedByResourcePath: (resourceUri: vscode.Uri) => boolean,
+        cancellationToken: vscode.CancellationToken,
+        rootUri?: vscode.Uri
     ): Promise<string> {
+        if (cancellationToken.isCancellationRequested) {
+            throw new vscode.CancellationError();
+        }
+
         // Prevent infinite recursion and excessive memory usage on deep directory structures
         if (currentDepth > maxDepth) {
             return '';
         }
 
-        // Initialize rootPath on first call
-        if (!rootPath) {
-            rootPath = dir;
+        if (!rootUri) {
+            rootUri = dir;
         }
 
         try {
             // Check if directory should be ignored before reading its contents
             // This optimization prevents reading large ignored directories like node_modules
             if (currentDepth > 0) {
-                const relativePath = path.relative(rootPath, dir);
+                const relativePath = UriUtils.relativePath(rootUri, dir);
                 if (IgnoreUtils.isIgnored(ig, relativePath, true)) {
                     return '';
                 }
-                if (isExcludedByAbsolutePath(dir)) {
+                if (isExcludedByResourcePath(dir)) {
                     return '';
                 }
             }
             
-            const entries = await fs.readdir(dir, { withFileTypes: true });
-            const visibleEntries: Array<{ name: string; isDirectory: boolean }> = [];
+            const entries = await vscode.workspace.fs.readDirectory(dir);
+            const visibleEntries: Array<{ name: string; isDirectory: boolean; uri: vscode.Uri }> = [];
 
-            for (const entry of entries) {
-                const filePath = path.join(dir, entry.name);
-                const rootRelative = path.relative(rootPath, filePath);
+            for (const [name, fileType] of entries) {
+                if (cancellationToken.isCancellationRequested) {
+                    throw new vscode.CancellationError();
+                }
+
+                const fileUri = vscode.Uri.joinPath(dir, name);
+                const isDirectory = Boolean(fileType & vscode.FileType.Directory);
+                const rootRelative = UriUtils.relativePath(rootUri, fileUri);
 
                 let isIgnored = false;
                 let isExcludedByPath = false;
 
                 try {
-                    isIgnored = IgnoreUtils.isIgnored(ig, rootRelative, entry.isDirectory());
+                    isIgnored = IgnoreUtils.isIgnored(ig, rootRelative, isDirectory);
                 } catch (error) {
                     console.error(`Error checking ignore pattern for ${rootRelative}: ${error}`);
                     isIgnored = false;
                 }
 
                 try {
-                    isExcludedByPath = isExcludedByAbsolutePath(filePath);
+                    isExcludedByPath = isExcludedByResourcePath(fileUri);
                 } catch (error) {
-                    console.error(`Error checking path exclusion for ${filePath}: ${error}`);
+                    console.error(`Error checking path exclusion for ${fileUri.toString()}: ${error}`);
                     isExcludedByPath = false;
                 }
 
                 if (!isIgnored && !isExcludedByPath) {
-                    visibleEntries.push({ name: entry.name, isDirectory: entry.isDirectory() });
+                    visibleEntries.push({ name, isDirectory, uri: fileUri });
                 }
             }
 
@@ -73,12 +83,13 @@ export class ProjectTreeGenerator {
             
             let result = '';
             for (let i = 0; i < sortedEntries.length; i++) {
-                const { name, isDirectory } = sortedEntries[i];
-                const filePath = path.join(dir, name);
+                if (cancellationToken.isCancellationRequested) {
+                    throw new vscode.CancellationError();
+                }
+
+                const { name, isDirectory, uri } = sortedEntries[i];
                 const isLast = i === sortedEntries.length - 1;
-                
-                // Tree drawing characters follow standard CLI conventions
-                // ├── for intermediate items, └── for last items in a branch
+
                 const connector = isLast ? '└── ' : '├── ';
                 const newPrefix = isLast ? '    ' : '│   ';
 
@@ -87,29 +98,38 @@ export class ProjectTreeGenerator {
                 if (isDirectory) {
                     try {
                         const subTree = await this.generateProjectTree(
-                            filePath,
+                            uri,
                             ig,
                             maxDepth,
                             currentDepth + 1,
                             prefix + newPrefix,
-                            isExcludedByAbsolutePath,
-                            rootPath
+                            isExcludedByResourcePath,
+                            cancellationToken,
+                            rootUri
                         );
                         result += subTree;
                     } catch (error) {
-                        console.error(`Error processing ${filePath}:`, error);
+                        if (error instanceof vscode.CancellationError) {
+                            throw error;
+                        }
+
+                        console.error(`Error processing ${uri.toString()}:`, error);
                     }
                 }
             }
 
             return result;
         } catch (error) {
-            console.error(`Error reading directory ${dir}:`, error);
+            if (error instanceof vscode.CancellationError) {
+                throw error;
+            }
+
+            console.error(`Error reading directory ${dir.toString()}:`, error);
             return '';
         }
     }
 
-    private static sortEntries(entries: Array<{ name: string; isDirectory: boolean }>): Array<{ name: string; isDirectory: boolean }> {
+    private static sortEntries<T extends { name: string; isDirectory: boolean }>(entries: T[]): T[] {
         // Standard file explorer behavior: directories first, then files, both alphabetical
         return entries.sort((a, b) => {
             if (a.isDirectory && !b.isDirectory) {
