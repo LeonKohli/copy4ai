@@ -19,7 +19,7 @@ export class ConfigurationService {
             includeProjectTree: config.get('includeProjectTree', true),
             compressCode: config.get('compressCode', false),
             removeComments: config.get('removeComments', false),
-            llmModel: config.get('llmModel', 'gpt-4o'),
+            llmModel: config.get('llmModel', 'claude-sonnet-4-6'),
             maxTokens: config.get('maxTokens', null),
             enableTokenWarning: config.get('enableTokenWarning', true),
             enableTokenCounting: config.get('enableTokenCounting', false)

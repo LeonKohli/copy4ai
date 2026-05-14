@@ -394,6 +394,36 @@ suite('Copy4AI Extension Test Suite', () => {
         });
     });
 
+    suite('Token Counting', () => {
+        test('Should select offline tokenizer by model family', () => {
+            const openAiInfo = TokenCounter.countTokens('hello world', 'gpt-5.5');
+            assert.strictEqual(openAiInfo.method, 'openai-o200k');
+            assert.strictEqual(openAiInfo.approximate, false);
+            assert.ok(openAiInfo.inputTokens > 0, 'OpenAI token count should be positive');
+            assert.ok(openAiInfo.maxInputTokens > 0, 'Known OpenAI model should have context limit');
+
+            const claudeInfo = TokenCounter.countTokens('hello world', 'claude-sonnet-4-6');
+            assert.strictEqual(claudeInfo.method, 'anthropic-legacy');
+            assert.strictEqual(claudeInfo.approximate, true);
+            assert.ok(claudeInfo.inputTokens > 0, 'Claude token count should be positive');
+
+            const unknownInfo = TokenCounter.countTokens('hello world', 'new-provider-model');
+            assert.strictEqual(unknownInfo.method, 'chars-heuristic');
+            assert.strictEqual(unknownInfo.approximate, true);
+            assert.strictEqual(unknownInfo.maxInputTokens, null);
+        });
+
+        test('Should resolve dated/suffixed model names via prefix lookup', () => {
+            const datedOpus = TokenCounter.countTokens('hi', 'claude-opus-4-7-20260416');
+            assert.strictEqual(datedOpus.method, 'anthropic-legacy');
+            assert.strictEqual(datedOpus.maxInputTokens, 1000000, 'Dated Opus 4.7 should resolve to 1M context');
+
+            const codexVariant = TokenCounter.countTokens('hi', 'gpt-5-codex-2026-01-01');
+            assert.strictEqual(codexVariant.method, 'openai-o200k');
+            assert.strictEqual(codexVariant.maxInputTokens, 400000);
+        });
+    });
+
     suite('Command Functionality', () => {
         test('Should respect configuration settings', async function() {
             this.timeout(30000);

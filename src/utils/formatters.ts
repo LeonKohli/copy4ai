@@ -112,8 +112,8 @@ export class OutputFormatter {
         
         const ext = parts.pop()?.toLowerCase();
         
-        // Extension mapping optimized for syntax highlighting in Markdown viewers
-        // Maps file extensions to language identifiers recognized by most syntax highlighters
+        // Extension → language identifier recognized by common Markdown
+        // syntax highlighters (Prism, highlight.js, GitHub).
         const extensionMap: Record<string, string> = {
             'js': 'javascript',
             'ts': 'typescript',

@@ -18,7 +18,7 @@ Copy4AI (formerly SnapSource) is a powerful Visual Studio Code extension that al
 - 🔧 Option to include or exclude project tree structure in the output.
 - 🗜️ Simple code compression option for more compact output.
 - 🧹 Option to remove comments from code.
-- 🔢 Token counting and cost estimation for various LLM models.
+- 🔢 Offline token counting and context-window warnings for various LLM models.
 
 ## 🔧 How to Use
 
@@ -51,10 +51,10 @@ This extension contributes the following settings:
 | `copy4ai.includeProjectTree` | Include the project tree structure in the output | `true` |
 | `copy4ai.compressCode` | Remove extra whitespace and empty lines from code when copying | `false` |
 | `copy4ai.removeComments` | Remove comments from code when copying | `false` |
-| `copy4ai.llmModel` | LLM model to use for token count and cost estimation | `"gpt-4o"` |
+| `copy4ai.llmModel` | LLM model used for token counting and context-window warnings | `"claude-sonnet-4-6"` |
 | `copy4ai.maxTokens` | Maximum number of tokens allowed before warning | `null` |
 | `copy4ai.enableTokenWarning` | Enable warning when token count exceeds the maximum | `true` |
-| `copy4ai.enableTokenCounting` | Enable token counting and cost estimation (requires network access) | `false` |
+| `copy4ai.enableTokenCounting` | Enable offline token counting and context-window warnings | `false` |
 
 > **Note:** By default, dot files are ignored, but this can be changed with the `copy4ai.ignoreDotFiles` setting. Set it to `false` to include .github and other dot directories. Binary files are automatically detected and excluded.
 
@@ -66,7 +66,7 @@ This extension contributes the following settings:
 
 ## 📋 Requirements
 
-- Visual Studio Code version 1.89.0 or higher
+- Visual Studio Code version 1.104.0 or higher
 
 ## 🐛 Known Issues
 
@@ -156,7 +156,7 @@ The extension is organized into modular utility classes:
 - `ProjectTreeGenerator` - Project structure generation
 - `OutputFormatter` - Different output formats (markdown, XML, plaintext)
 - `IgnoreUtils` - Handling ignore patterns and exclusions
-- `TokenCounter` - Token counting and cost estimation
+- `TokenCounter` - Offline token counting and context-window warnings
 
 ## 💬 Feedback and Contributions
 

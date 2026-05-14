@@ -1,12 +1,76 @@
+# Source / dev artifacts
 .vscode/**
 .vscode-test/**
 test/**
 src/**
 .gitignore
 .yarnrc
+.eslintrc*
+eslint.config.*
+vscode-test.config.*
 vsc-extension-quickstart.md
 **/jsconfig.json
-**/tsconfig.json
+**/tsconfig*.json
 **/*.map
-**/.eslintrc.json
 **/.vscode-test.*
+
+# Tooling / CI / private state (must not ship)
+.claude/**
+.github/**
+.editorconfig
+bun.lock
+package-lock.json
+yarn.lock
+
+# Noise inside node_modules that vsce pulls in by default
+node_modules/**/test/**
+node_modules/**/tests/**
+node_modules/**/__tests__/**
+node_modules/**/example/**
+node_modules/**/examples/**
+node_modules/**/docs/**
+node_modules/**/.github/**
+node_modules/**/.prettier*
+node_modules/**/.eslintrc*
+node_modules/**/jest.config.*
+node_modules/**/tsconfig*.json
+node_modules/**/*.test.*
+node_modules/**/*.d.ts
+node_modules/**/*.ts
+node_modules/**/CHANGELOG*
+node_modules/**/HISTORY*
+node_modules/**/AUTHORS*
+node_modules/**/CONTRIBUTORS*
+
+# Anthropic tokenizer ships a transitive @types/node that has no runtime use
+node_modules/@anthropic-ai/tokenizer/node_modules/**
+
+# gpt-tokenizer: we only require the CJS encoders for o200k_base + cl100k_base.
+# Drop the duplicate ESM/dist/src builds and the raw .tiktoken data files
+# (the CJS build inlines BPE ranks into JS).
+node_modules/gpt-tokenizer/esm/**
+node_modules/gpt-tokenizer/src/**
+node_modules/gpt-tokenizer/dist/**
+node_modules/gpt-tokenizer/data/**
+node_modules/gpt-tokenizer/cjs/encoding/o200k_harmony.js
+node_modules/gpt-tokenizer/cjs/encoding/p50k_base.js
+node_modules/gpt-tokenizer/cjs/encoding/p50k_edit.js
+node_modules/gpt-tokenizer/cjs/encoding/r50k_base.js
+node_modules/gpt-tokenizer/cjs/bpeRanks/o200k_harmony.js
+node_modules/gpt-tokenizer/cjs/bpeRanks/p50k_base.js
+node_modules/gpt-tokenizer/cjs/bpeRanks/p50k_edit.js
+node_modules/gpt-tokenizer/cjs/bpeRanks/r50k_base.js
+
+# tiktoken: @anthropic-ai/tokenizer only consumes `tiktoken/lite`. The full
+# wasm (~5.6 MB) and the encoder files are dead weight for us.
+node_modules/tiktoken/encoders/**
+node_modules/tiktoken/tiktoken_bg.wasm
+node_modules/tiktoken/tiktoken_bg.js
+node_modules/tiktoken/tiktoken_bg.wasm.d.ts
+node_modules/tiktoken/tiktoken.js
+node_modules/tiktoken/tiktoken.d.ts
+node_modules/tiktoken/tiktoken.cjs
+node_modules/tiktoken/init.js
+node_modules/tiktoken/init.d.ts
+node_modules/tiktoken/load.js
+node_modules/tiktoken/load.d.ts

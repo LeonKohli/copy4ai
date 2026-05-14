@@ -21,9 +21,25 @@ export interface ProcessedContent {
     files: FileContent[];
 }
 
+// Tokenization method actually used for the count. Surfaced to the user so
+// they can judge how trustworthy the number is.
+//   - openai-o200k:     exact (gpt-tokenizer) for GPT-5/4o/4.1/o-series
+//   - openai-cl100k:    exact (gpt-tokenizer) for GPT-4/3.5
+//   - anthropic-legacy: approximation (~1-2% MAPE per published studies) for
+//                       Claude. Exact counts are only available via the free
+//                       /v1/messages/count_tokens API (rate-limited)
+//   - chars-heuristic:  4-chars-per-token rough fallback for unknown families
+export type TokenCountMethod =
+    | 'openai-o200k'
+    | 'openai-cl100k'
+    | 'anthropic-legacy'
+    | 'chars-heuristic';
+
 export interface TokenInfo {
-    inputTokens: number;
-    cost: number;
+    readonly inputTokens: number;
+    readonly method: TokenCountMethod;
+    readonly approximate: boolean;
+    readonly maxInputTokens: number | null;
 }
 
 export interface Copy4AIConfiguration {
@@ -53,39 +69,12 @@ export interface ProcessFileOptions {
     cancellationToken: vscode.CancellationToken;
 }
 
-// Supported LLM models for token counting and cost estimation
-// Models are selected based on popularity and reliable token counting support
-export const SUPPORTED_MODELS = [
-    'gpt-4',
-    'gpt-4o', 
-    'gpt-4o-mini',
-    'claude-3-5-sonnet-20240620',
-    'claude-3-opus-20240229'
-] as const;
-
-export type SupportedModel = typeof SUPPORTED_MODELS[number];
-
 export const OUTPUT_FORMATS = ['plaintext', 'markdown', 'xml'] as const;
 export type OutputFormat = typeof OUTPUT_FORMATS[number];
-
-// Token limits based on official model specifications
-// Used for warning users before they exceed context windows or hit API limits
-export const MODEL_MAX_TOKENS: Record<SupportedModel, number> = {
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    'gpt-4': 8192,
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    'gpt-4o': 128000,
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    'gpt-4o-mini': 128000,
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    'claude-3-5-sonnet-20240620': 200000,
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    'claude-3-opus-20240229': 200000
-} as const;
 
 export type ProgressReporter = vscode.Progress<{
     message?: string;
     increment?: number;
 }>;
 
-export type CancellationToken = vscode.CancellationToken; 
+export type CancellationToken = vscode.CancellationToken;

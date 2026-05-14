@@ -25,7 +25,6 @@
     "compress",
     "remove comments",
     "token count",
-    "cost estimation",
     "ai",
     "chatgpt"
   ],
@@ -254,15 +253,28 @@
         "properties": {
           "copy4ai.llmModel": {
             "type": "string",
-            "enum": [
-              "gpt-4",
+            "default": "claude-sonnet-4-6",
+            "examples": [
+              "claude-opus-4-7",
+              "claude-opus-4-6",
+              "claude-sonnet-4-6",
+              "claude-haiku-4-5",
+              "claude-3-7-sonnet",
+              "gpt-5.5",
+              "gpt-5.4",
+              "gpt-5-codex",
+              "gpt-4.1",
               "gpt-4o",
-              "gpt-4o-mini",
-              "claude-3-5-sonnet-20240620",
-              "claude-3-opus-20240229"
+              "o3",
+              "o4-mini",
+              "gemini-3-pro",
+              "gemini-3-flash",
+              "gemini-2.5-pro",
+              "grok-4",
+              "deepseek-v4",
+              "deepseek-r1"
             ],
-            "default": "gpt-4o",
-            "description": "LLM model to use for token count and cost estimation"
+            "markdownDescription": "Model name used to choose the tokenizer and look up the context-window warning threshold. Free-text: type any model name (e.g. `claude-opus-4-7`, `gpt-5.5`, `gemini-3-pro`). Lookup is prefix-based, so dated suffixes like `claude-opus-4-7-20260416` also resolve. Exact token counting is supported for OpenAI (`gpt-*`, `o1`/`o3`/`o4`) and Claude (`claude-*`, via the legacy Anthropic tokenizer, ~1-2% approximation). Other families fall back to a chars/4 heuristic."
           },
           "copy4ai.maxTokens": {
             "type": [
@@ -270,7 +282,7 @@
               "null"
             ],
             "default": null,
-            "description": "Maximum number of tokens allowed before warning. Set to 0 or null to disable warning. If not set, it will use the model's default max tokens."
+            "description": "Maximum number of tokens allowed before warning. Set to 0 or null to disable warning. If not set, the model's registered context window is used."
           },
           "copy4ai.enableTokenWarning": {
             "type": "boolean",
@@ -280,7 +292,7 @@
           "copy4ai.enableTokenCounting": {
             "type": "boolean",
             "default": false,
-            "description": "Enable token counting and cost estimation (requires network access)"
+            "description": "Enable token counting. Runs fully offline."
           }
         }
       }
@@ -307,9 +319,10 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "@anthropic-ai/tokenizer": "^0.0.4",
+    "gpt-tokenizer": "^3.4.0",
     "ignore": "^7.0.5",
-    "isbinaryfile": "^5.0.6",
-    "llm-cost": "^1.0.5"
+    "isbinaryfile": "^5.0.6"
   },
   "repository": {
     "type": "git",
