@@ -142,10 +142,10 @@ This extension is built with TypeScript and uses the VS Code Extension API. The 
 ### Building
 
 ```bash
-npm run compile    # Compile TypeScript to JavaScript
-npm run watch      # Watch mode for development
-npm run lint       # Run ESLint
-npm test          # Run tests
+bun run compile    # Compile TypeScript to JavaScript
+bun run watch      # Watch mode for development
+bun run lint       # Run ESLint
+bun run test       # Run tests
 ```
 
 ### Architecture

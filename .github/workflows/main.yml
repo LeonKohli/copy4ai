@@ -20,32 +20,25 @@ jobs:
     outputs:
       vsix_path: ${{ steps.package.outputs.vsix_path }}
     steps:
-      # Pin to specific SHA for security
       - uses: actions/checkout@v4
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
 
-      # Add caching for faster builds
-      - name: Cache dependencies
-        uses: actions/cache@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
+          bun-version: latest
 
       - name: Install dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
         env:
           CI: true
+
+      - name: Compile
+        run: bun run compile
 
       - name: Package Extension
         id: package
         run: |
-          npx @vscode/vsce package
+          bunx @vscode/vsce package
           echo "vsix_path=$(ls *.vsix)" >> $GITHUB_OUTPUT
 
       - name: Validate VSIX
@@ -67,14 +60,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          node-version: '20'
+          bun-version: latest
 
       - name: Install dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
         env:
           CI: true
 
@@ -100,21 +93,21 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          node-version: '20'
+          bun-version: latest
 
       - name: Install dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
         env:
           CI: true
 
       - name: Package Extension for Release
         id: package_release
         run: |
-          npx @vscode/vsce package
+          bunx @vscode/vsce package
           echo "vsix_path=$(ls *.vsix)" >> $GITHUB_OUTPUT
 
       - name: Generate Release Notes
