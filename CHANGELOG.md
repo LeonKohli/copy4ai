@@ -2,6 +2,12 @@
 
 All notable changes to the "Copy4AI" extension will be documented in this file.
 
+## [1.3.4] - 2026-05-14
+
+### Fixed
+- Trailing-slash directory patterns in `.gitignore` and `copy4ai.excludePatterns` now correctly exclude the matched directory (e.g. `build/`, `src-tauri/icons/`). Previously the directory itself was recursed into and showed up as an empty entry in the project tree. (#21)
+- Removed duplicate `activationEvents` key in `package.json`.
+
 ## [1.3.3] - 2025-12-20
 
 ### Fixed
