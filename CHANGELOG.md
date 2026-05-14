@@ -2,6 +2,31 @@
 
 All notable changes to the "Copy4AI" extension will be documented in this file.
 
+## [1.4.0] - 2026-05-14
+
+### Added
+- **Virtual workspace support.** File access now goes through `vscode.workspace.fs` so Copy4AI works in Codespaces, Remote SSH, and other virtual file systems. Declared via `capabilities.virtualWorkspaces`.
+- **Restricted Mode support.** The extension activates in untrusted workspaces; workspace-defined settings are ignored until trust is granted. Declared via `capabilities.untrustedWorkspaces`.
+- Active-editor fallback: invoking the copy command without a selection now uses the active editor's file.
+
+### Changed
+- **Token counting overhaul.** Replaced the abandoned `llm-cost` dependency (snapshot from July 2024) with model-family-aware tokenization:
+  - OpenAI models (GPT-5 series, GPT-4.1, GPT-4o, o-series) use `gpt-tokenizer`'s `o200k_base` / `cl100k_base` encoders for exact counts.
+  - Claude models use `@anthropic-ai/tokenizer` (~1-2% approximation — the only off-line tokenizer Anthropic ships).
+  - Unknown families fall back to a labeled chars/4 heuristic.
+- `copy4ai.llmModel` is now free-text (was a 5-entry enum frozen on 2024-vintage models). Type any model name. Lookup is prefix-based, so dated suffixes like `claude-opus-4-7-20260416` also resolve.
+- Default model: `claude-sonnet-4-6` (highest developer adoption per May 2026 surveys).
+- Token-count notifications now disclose the tokenization method (`exact` vs `approx — Claude tokenizer` vs `approx — chars/4 heuristic`).
+- Curated model registry covers the current frontier: Claude Opus 4.7/4.6, Sonnet 4.6/4.5, Haiku 4.5; GPT-5.5/5.4/5.3, gpt-5-codex, o3/o4-mini; Gemini 3 Pro/Flash, 2.5 Pro/Flash; Grok 4, DeepSeek V4/R1.
+- `enableTokenCounting` no longer requires network access.
+- Migrated from npm to bun for local development and CI.
+
+### Removed
+- **Cost estimation removed.** Per-token pricing drifts faster than this extension ships; reporting stale dollar figures was worse than reporting none. Token counts and context-window warnings remain.
+- `llm-cost` dependency (single maintainer, last published 2024-07).
+- Hardcoded `MODEL_MAX_TOKENS` table and `SUPPORTED_MODELS` enum from `types.ts`.
+- `cost estimation` keyword from `package.json`.
+
 ## [1.3.4] - 2026-05-14
 
 ### Fixed
