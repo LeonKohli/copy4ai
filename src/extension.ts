@@ -8,6 +8,7 @@ import { OutputFormatter } from './utils/formatters';
 import { IgnoreUtils } from './utils/ignoreUtils';
 import { TokenCounter } from './utils/tokenCounter';
 import { UriUtils } from './utils/uriUtils';
+import { ScmChangesService } from './utils/scmChanges';
 
 export class Copy4AIService {
 
@@ -209,6 +210,37 @@ export class Copy4AIService {
         });
     }
 
+    public static async copyScmChanges(uris: ReadonlyArray<vscode.Uri>): Promise<void> {
+        try {
+            if (uris.length === 0) {
+                throw new Error('No files selected');
+            }
+
+            const api = await ScmChangesService.getGitApi();
+            const diff = await ScmChangesService.collectDiffs(api, uris);
+
+            const config = ConfigurationService.getConfiguration(uris[0]);
+            const formattedContent = OutputFormatter.formatScmChangesOutput(config.outputFormat, diff);
+            await this.clipboard.writeText(formattedContent);
+
+            if (config.enableTokenCounting) {
+                await TokenCounter.showTokenInfo(
+                    formattedContent,
+                    config.llmModel,
+                    config.outputFormat,
+                    config.enableTokenWarning,
+                    config.maxTokens
+                );
+            } else {
+                vscode.window.showInformationMessage(`Copied changes to clipboard: ${config.outputFormat} format`);
+            }
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            vscode.window.showErrorMessage(`Copy4AI Error: ${errorMessage}`);
+            throw error;
+        }
+    }
+
     private static resolveItemsToProcess(
         uri?: vscode.Uri,
         uris?: ReadonlyArray<vscode.Uri>
@@ -281,6 +313,25 @@ export function activate(context: vscode.ExtensionContext): void {
         }
     );
 
+    const copyScmChangesCommand = vscode.commands.registerCommand(
+        'snapsource.copyScmChanges',
+        async (...resourceStates: vscode.SourceControlResourceState[]) => {
+            const seen = new Set<string>();
+            const uris = resourceStates
+                .filter(state => state?.resourceUri instanceof vscode.Uri)
+                .map(state => state.resourceUri)
+                .filter(uri => {
+                    const key = uri.toString();
+                    if (seen.has(key)) {
+                        return false;
+                    }
+                    seen.add(key);
+                    return true;
+                });
+            await Copy4AIService.copyScmChanges(uris);
+        }
+    );
+
     const toggleProjectTreeCommand = vscode.commands.registerCommand(
         'snapsource.toggleProjectTree',
         async () => {
@@ -299,6 +350,7 @@ export function activate(context: vscode.ExtensionContext): void {
         copyToClipboardCommand,
         copyProjectStructureCommand,
         copyScmResourcesCommand,
+        copyScmChangesCommand,
         toggleProjectTreeCommand,
         toggleDotFilesCommand
     );

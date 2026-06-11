@@ -40,6 +40,23 @@ export class OutputFormatter {
         }
     }
 
+    public static formatScmChangesOutput(format: OutputFormat, diff: string): string {
+        switch (format) {
+            case 'markdown': {
+                const fence = this.getMarkdownFence(diff);
+                return `# Changes\n\n${fence}diff\n${diff}\n${fence}\n`;
+            }
+            case 'xml':
+                return `<?xml version="1.0" encoding="UTF-8"?>\n<copy4ai>\n` +
+                    `  <changes>\n` +
+                    `    <![CDATA[` + diff + `]]>\n` +
+                    `  </changes>\n</copy4ai>`;
+            case 'plaintext':
+            default:
+                return `Changes:\n\n${diff}\n`;
+        }
+    }
+
     private static formatMarkdown(projectTree: string, content: ReadonlyArray<FileContent>): string {
         let output = '';
         

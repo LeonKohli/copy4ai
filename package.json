@@ -87,6 +87,11 @@
         "category": "Copy4AI"
       },
       {
+        "command": "snapsource.copyScmChanges",
+        "title": "Copy Changes (Copy4AI)",
+        "category": "Copy4AI"
+      },
+      {
         "command": "snapsource.toggleProjectTree",
         "title": "Toggle Project Tree",
         "category": "Copy4AI"
@@ -109,6 +114,10 @@
         },
         {
           "command": "snapsource.copyScmResources",
+          "when": "false"
+        },
+        {
+          "command": "snapsource.copyScmChanges",
           "when": "false"
         },
         {
@@ -152,6 +161,11 @@
         {
           "command": "snapsource.copyScmResources",
           "group": "copy4ai@1"
+        },
+        {
+          "command": "snapsource.copyScmChanges",
+          "group": "copy4ai@2",
+          "when": "scmProvider == git"
         }
       ]
     },

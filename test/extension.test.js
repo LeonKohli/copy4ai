@@ -742,6 +742,117 @@ suite('Copy4AI Extension Test Suite', () => {
         });
     });
 
+    suite('SCM Diff Copy', () => {
+        const cp = require('child_process');
+        const testWorkspacePath = path.join(__dirname, 'testWorkspace');
+        const repoDir = path.join(testWorkspacePath, 'diffrepo');
+        const trackedUri = vscode.Uri.file(path.join(repoDir, 'tracked.txt'));
+        const pristineUri = vscode.Uri.file(path.join(repoDir, 'pristine.txt'));
+        const brandnewUri = vscode.Uri.file(path.join(repoDir, 'brandnew.txt'));
+        let gitRepo;
+
+        function git(args) {
+            cp.execSync(`git -c user.name=Test -c user.email=test@example.com ${args}`, { cwd: repoDir });
+        }
+
+        suiteSetup(async function() {
+            this.timeout(30000);
+
+            await vscode.workspace.fs.createDirectory(vscode.Uri.file(repoDir));
+            git('init -b main');
+            // Pin diff output format so assertions don't depend on the
+            // developer's global git config (e.g. diff.mnemonicprefix)
+            git('config diff.mnemonicprefix false');
+            git('config diff.noprefix false');
+            await vscode.workspace.fs.writeFile(trackedUri, Buffer.from('original line\n'));
+            await vscode.workspace.fs.writeFile(pristineUri, Buffer.from('unchanged content\n'));
+            git('add .');
+            git('commit -m initial');
+            await vscode.workspace.fs.writeFile(trackedUri, Buffer.from('changed line\n'));
+            await vscode.workspace.fs.writeFile(brandnewUri, Buffer.from('fresh content\n'));
+
+            const gitExtension = vscode.extensions.getExtension('vscode.git');
+            const exports = gitExtension.isActive ? gitExtension.exports : await gitExtension.activate();
+            const api = exports.getAPI(1);
+            gitRepo = await api.openRepository(vscode.Uri.file(repoDir));
+            await gitRepo.status();
+        });
+
+        suiteTeardown(async function() {
+            this.timeout(10000);
+            try {
+                await vscode.workspace.fs.delete(vscode.Uri.file(repoDir), { recursive: true });
+            } catch (error) {
+                console.error(`Error cleaning up diff test repo: ${error.message}`);
+            }
+        });
+
+        test('Should register SCM diff copy command', async function() {
+            this.timeout(10000);
+            const commands = await vscode.commands.getCommands();
+            assert.ok(commands.includes('snapsource.copyScmChanges'), 'Should register snapsource.copyScmChanges');
+        });
+
+        test('Should copy a unified diff for a modified file', async function() {
+            this.timeout(10000);
+
+            await vscode.commands.executeCommand('snapsource.copyScmChanges', { resourceUri: trackedUri });
+
+            const clipboardContent = await testClipboard.readText();
+            assert.ok(clipboardContent.includes('```diff'), 'Should wrap the diff in a fenced diff block (markdown default)');
+            assert.ok(clipboardContent.includes('diff --git a/tracked.txt b/tracked.txt'), 'Should include the git diff header');
+            assert.ok(clipboardContent.includes('-original line'), 'Should include the removed line');
+            assert.ok(clipboardContent.includes('+changed line'), 'Should include the added line');
+        });
+
+        test('Should include untracked files as new-file diffs', async function() {
+            this.timeout(10000);
+
+            await vscode.commands.executeCommand('snapsource.copyScmChanges', { resourceUri: brandnewUri });
+
+            const clipboardContent = await testClipboard.readText();
+            assert.ok(clipboardContent.includes('diff --git a/brandnew.txt b/brandnew.txt'), 'Should include a diff header for the untracked file');
+            assert.ok(clipboardContent.includes('new file mode'), 'Should mark the file as new');
+            assert.ok(clipboardContent.includes('+fresh content'), 'Should include the file content as additions');
+        });
+
+        test('Should combine multiple selections and dedupe repeats', async function() {
+            this.timeout(10000);
+
+            await vscode.commands.executeCommand(
+                'snapsource.copyScmChanges',
+                { resourceUri: trackedUri },
+                { resourceUri: trackedUri },
+                { resourceUri: brandnewUri }
+            );
+
+            const clipboardContent = await testClipboard.readText();
+            const trackedHeaders = clipboardContent.split('diff --git a/tracked.txt').length - 1;
+            assert.strictEqual(trackedHeaders, 1, 'Should include the duplicated selection only once');
+            assert.ok(clipboardContent.includes('+changed line'), 'Should include the modified file diff');
+            assert.ok(clipboardContent.includes('+fresh content'), 'Should include the untracked file diff');
+        });
+
+        test('Should fail without touching the clipboard when selection has no changes', async function() {
+            this.timeout(10000);
+
+            const sentinel = 'diff-clipboard-sentinel-' + Math.random();
+            await testClipboard.writeText(sentinel);
+
+            await assert.rejects(
+                Promise.resolve(vscode.commands.executeCommand(
+                    'snapsource.copyScmChanges',
+                    { resourceUri: pristineUri }
+                )),
+                /[Nn]o changes/,
+                'Should reject because the file has no changes'
+            );
+
+            const clipboardContent = await testClipboard.readText();
+            assert.strictEqual(clipboardContent, sentinel, 'Clipboard should be unchanged');
+        });
+    });
+
     suite('Exclusion Patterns', () => {
         test('Should exclude files using glob patterns', () => {
             // Create an ignore instance with standard patterns
