@@ -2,6 +2,20 @@
 
 All notable changes to the "Copy4AI" extension will be documented in this file.
 
+## [1.5.0] - 2026-06-11
+
+### Added
+- **Copy from the Source Control view.** Right-click one or more changed files in the SCM view and pick *Copy to Clipboard (Copy4AI)*. Multi-select is supported; the command receives the selection the same way `git.stage` does. (#23)
+- **Copy from the editor tab.** Right-click a tab title to copy that file. Hidden while multiple tabs are selected, since VS Code does not pass the tab selection to extensions (microsoft/vscode#213699).
+- **Copy Changes (Copy4AI).** New SCM context-menu command that copies a unified diff against HEAD for the selected files instead of their full contents — a fraction of the tokens when the question is "what changed". Untracked files are synthesized as new-file diffs (plain `git diff` omits them); duplicate selections are deduped; output honors `copy4ai.outputFormat` and token counting. Git repositories only (uses the built-in git extension API); diff formatting follows your local git config, matching terminal `git diff` output.
+
+### Changed
+- CI now runs the test suite on every push and PR, and releases are blocked unless it passes.
+- The test suite no longer writes to the OS clipboard (no more clipboard-manager spam from test runs) and finishes in about a second instead of 25.
+
+### Fixed
+- Deleted files no longer abort a copy. Files that exist in the selection but not on disk (e.g. deletions listed in the SCM view) are skipped with a warning; if nothing in the selection exists, the command fails without touching the clipboard.
+
 ## [1.4.0] - 2026-05-14
 
 ### Added
