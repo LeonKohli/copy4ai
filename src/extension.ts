@@ -94,6 +94,7 @@ export class Copy4AIService {
                 }
 
                 let processedContent: FileContent[] = [];
+                const skippedMissingFiles: string[] = [];
 
                 if (!options.projectTreeOnly) {
                     progress.report({ increment: 20, message: "Processing files..." });
@@ -119,7 +120,18 @@ export class Copy4AIService {
                             message: `Processing ${i+1}/${totalItems}: ${UriUtils.basename(item)}`
                         });
 
-                        const stats = await vscode.workspace.fs.stat(item);
+                        // SCM views list deleted files; skip them instead of failing the whole copy
+                        let stats: vscode.FileStat;
+                        try {
+                            stats = await vscode.workspace.fs.stat(item);
+                        } catch (error) {
+                            if (error instanceof vscode.FileSystemError && error.code === 'FileNotFound') {
+                                skippedMissingFiles.push(UriUtils.basename(item));
+                                continue;
+                            }
+                            throw error;
+                        }
+
                         if (stats.type & vscode.FileType.Directory) {
                             const dirResults = await FileProcessor.processDirectory(
                                 item,
@@ -139,6 +151,10 @@ export class Copy4AIService {
                                 processedContent.push(fileContent);
                             }
                         }
+                    }
+
+                    if (skippedMissingFiles.length === totalItems) {
+                        throw new Error(`Selected file(s) no longer exist on disk: ${skippedMissingFiles.join(', ')}`);
                     }
                 }
 
@@ -172,6 +188,12 @@ export class Copy4AIService {
                     );
                 } else {
                     vscode.window.showInformationMessage(`Copied to clipboard: ${config.outputFormat} format`);
+                }
+
+                if (skippedMissingFiles.length > 0) {
+                    vscode.window.showWarningMessage(
+                        `Copy4AI: Skipped ${skippedMissingFiles.length} deleted file(s): ${skippedMissingFiles.join(', ')}`
+                    );
                 }
 
             } catch (error) {
@@ -247,6 +269,18 @@ export function activate(context: vscode.ExtensionContext): void {
         }
     );
 
+    // The SCM view invokes commands with spread SourceControlResourceState args
+    // (vscode's RepositoryPaneActionRunner calls action.run(...args))
+    const copyScmResourcesCommand = vscode.commands.registerCommand(
+        'snapsource.copyScmResources',
+        async (...resourceStates: vscode.SourceControlResourceState[]) => {
+            const uris = resourceStates
+                .filter(state => state?.resourceUri instanceof vscode.Uri)
+                .map(state => state.resourceUri);
+            await Copy4AIService.copyToClipboard(undefined, uris);
+        }
+    );
+
     const toggleProjectTreeCommand = vscode.commands.registerCommand(
         'snapsource.toggleProjectTree',
         async () => {
@@ -264,6 +298,7 @@ export function activate(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
         copyToClipboardCommand,
         copyProjectStructureCommand,
+        copyScmResourcesCommand,
         toggleProjectTreeCommand,
         toggleDotFilesCommand
     );

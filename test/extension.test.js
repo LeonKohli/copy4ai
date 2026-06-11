@@ -630,6 +630,118 @@ suite('Copy4AI Extension Test Suite', () => {
         });
     });
 
+    suite('SCM Integration', () => {
+        const testWorkspacePath = path.join(__dirname, 'testWorkspace');
+
+        async function ensureTestWorkspace() {
+            if (!vscode.workspace.workspaceFolders ||
+                !vscode.workspace.workspaceFolders[0].uri.fsPath.includes('testWorkspace')) {
+                await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(testWorkspacePath));
+            }
+        }
+
+        test('Should register SCM copy command', async function() {
+            this.timeout(10000);
+
+            const ext = vscode.extensions.getExtension('LeonKohli.snapsource');
+            if (ext && !ext.isActive) {
+                await ext.activate();
+            }
+
+            const commands = await vscode.commands.getCommands();
+            assert.ok(commands.includes('snapsource.copyScmResources'), 'Should register snapsource.copyScmResources');
+        });
+
+        test('Should copy files passed as spread SCM resource states', async function() {
+            this.timeout(10000);
+            await ensureTestWorkspace();
+
+            const testFiles = [
+                { name: 'scm-test1.txt', content: 'SCM content one' },
+                { name: 'scm-test2.txt', content: 'SCM content two' }
+            ];
+            const uris = [];
+
+            try {
+                for (const file of testFiles) {
+                    const uri = vscode.Uri.file(path.join(testWorkspacePath, file.name));
+                    await vscode.workspace.fs.writeFile(uri, Buffer.from(file.content));
+                    uris.push(uri);
+                }
+
+                // The SCM view invokes commands with spread SourceControlResourceState
+                // args (see RepositoryPaneActionRunner in vscode); duck-typed objects
+                // exercise the same code path.
+                await vscode.commands.executeCommand(
+                    'snapsource.copyScmResources',
+                    { resourceUri: uris[0] },
+                    { resourceUri: uris[1] }
+                );
+
+                const clipboardContent = await testClipboard.readText();
+                assert.ok(clipboardContent.includes('SCM content one'), 'Should include first resource content');
+                assert.ok(clipboardContent.includes('SCM content two'), 'Should include second resource content');
+            } finally {
+                for (const uri of uris) {
+                    try {
+                        await vscode.workspace.fs.delete(uri);
+                    } catch (error) {
+                        console.error(`Error cleaning up SCM test file: ${error.message}`);
+                    }
+                }
+            }
+        });
+
+        test('Should skip deleted files in SCM selection and copy the rest', async function() {
+            this.timeout(10000);
+            await ensureTestWorkspace();
+
+            const existingUri = vscode.Uri.file(path.join(testWorkspacePath, 'scm-existing.txt'));
+            const deletedUri = vscode.Uri.file(path.join(testWorkspacePath, 'scm-deleted.txt'));
+
+            try {
+                await vscode.workspace.fs.writeFile(existingUri, Buffer.from('Still on disk'));
+
+                await vscode.commands.executeCommand(
+                    'snapsource.copyScmResources',
+                    { resourceUri: existingUri },
+                    { resourceUri: deletedUri }
+                );
+
+                const clipboardContent = await testClipboard.readText();
+                assert.ok(clipboardContent.includes('Still on disk'), 'Should include the existing file content');
+                assert.ok(!clipboardContent.includes('scm-deleted.txt'), 'Should not list the deleted file');
+            } finally {
+                try {
+                    await vscode.workspace.fs.delete(existingUri);
+                } catch (error) {
+                    console.error(`Error cleaning up SCM test file: ${error.message}`);
+                }
+            }
+        });
+
+        test('Should fail without touching the clipboard when all selected files are deleted', async function() {
+            this.timeout(10000);
+            await ensureTestWorkspace();
+
+            const deletedUri = vscode.Uri.file(path.join(testWorkspacePath, 'scm-gone.txt'));
+            const sentinel = 'clipboard-sentinel-' + Math.random();
+            await testClipboard.writeText(sentinel);
+
+            await assert.rejects(
+                Promise.resolve(vscode.commands.executeCommand(
+                    'snapsource.copyScmResources',
+                    { resourceUri: deletedUri }
+                )),
+                /no longer exist/,
+                'Should reject because the selected file does not exist on disk'
+            );
+
+            const clipboardContent = await testClipboard.readText();
+            assert.strictEqual(clipboardContent, sentinel, 'Clipboard should be unchanged');
+        });
+    });
+
     suite('Exclusion Patterns', () => {
         test('Should exclude files using glob patterns', () => {
             // Create an ignore instance with standard patterns

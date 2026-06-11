@@ -29,6 +29,11 @@ Copy4AI (formerly SnapSource) is a Visual Studio Code extension that copies file
 3. The content is copied to your clipboard. Dot files and binary files are left out, ignore patterns and size limits apply.
 4. Paste the content into your preferred LLM interface.
 
+**Copy to Clipboard (Copy4AI)** is also available from:
+
+- The **Source Control view**: right-click one or more changed files to copy them — handy when your working set is scattered across the project. Deleted files in the selection are skipped with a notice.
+- The **editor tab**: right-click a tab title to copy that file. (VS Code does not expose multi-selected tabs to extensions, so the entry is hidden while multiple tabs are selected.)
+
 Additional commands:
 - Use the **Toggle Project Tree (Copy4AI)** command from the Command Palette to quickly enable or disable project tree inclusion in the output without changing settings.
 - Use the **Toggle Dot Files Inclusion (Copy4AI)** command from the Command Palette to quickly switch between including or excluding dot files (like .github) without changing settings.

@@ -82,6 +82,11 @@
         "category": "Copy4AI"
       },
       {
+        "command": "snapsource.copyScmResources",
+        "title": "Copy to Clipboard (Copy4AI)",
+        "category": "Copy4AI"
+      },
+      {
         "command": "snapsource.toggleProjectTree",
         "title": "Toggle Project Tree",
         "category": "Copy4AI"
@@ -100,6 +105,10 @@
         },
         {
           "command": "snapsource.copyProjectStructure",
+          "when": "false"
+        },
+        {
+          "command": "snapsource.copyScmResources",
           "when": "false"
         },
         {
@@ -130,6 +139,19 @@
           "command": "snapsource.copyProjectStructure",
           "group": "copy4ai@2",
           "when": "editorFocus"
+        }
+      ],
+      "editor/title/context": [
+        {
+          "command": "snapsource.copyToClipboard",
+          "group": "copy4ai@1",
+          "when": "isFileSystemResource && !multipleEditorsSelectedInGroup"
+        }
+      ],
+      "scm/resourceState/context": [
+        {
+          "command": "snapsource.copyScmResources",
+          "group": "copy4ai@1"
         }
       ]
     },
