@@ -2,7 +2,7 @@
 
 ![Copy4AI Logo](images/icon.png)
 
-Copy4AI (formerly SnapSource) is a powerful Visual Studio Code extension that allows you to easily copy file and folder contents along with the project tree structure to your clipboard. It automatically ignores dot files, respects .gitignore rules, and provides plaintext, markdown, and XML output formats. This tool is particularly useful when working with Large Language Models (LLMs) and you need to provide context about your project.
+Copy4AI (formerly SnapSource) is a Visual Studio Code extension that copies file and folder contents, together with the project tree structure, to your clipboard — built for pasting project context into Large Language Models (LLMs). Dot files and anything matched by your .gitignore stay out of the output, which comes in plaintext, markdown, or XML.
 
 ## 🚀 Features
 
@@ -26,7 +26,7 @@ Copy4AI (formerly SnapSource) is a powerful Visual Studio Code extension that al
 2. Right-click and select one of the following options:
    - **Copy to Clipboard (Copy4AI)**: Copies the selected files/folders with their content
    - **Copy Project Structure (Copy4AI)**: Copies only the project tree structure of the selected folder (or entire workspace if no folder is selected)
-3. The content will be copied to your clipboard, excluding dot files, binary files, and respecting ignore patterns and size limits.
+3. The content is copied to your clipboard. Dot files and binary files are left out, ignore patterns and size limits apply.
 4. Paste the content into your preferred LLM interface.
 
 Additional commands:
@@ -56,7 +56,7 @@ This extension contributes the following settings:
 | `copy4ai.enableTokenWarning` | Enable warning when token count exceeds the maximum | `true` |
 | `copy4ai.enableTokenCounting` | Enable offline token counting and context-window warnings | `false` |
 
-> **Note:** By default, dot files are ignored, but this can be changed with the `copy4ai.ignoreDotFiles` setting. Set it to `false` to include .github and other dot directories. Binary files are automatically detected and excluded.
+> Dot files are ignored by default; set `copy4ai.ignoreDotFiles` to `false` to include .github and other dot directories. Binary files are detected and excluded.
 
 ## 📊 Output Formats
 
