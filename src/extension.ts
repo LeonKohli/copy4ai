@@ -11,6 +11,10 @@ import { UriUtils } from './utils/uriUtils';
 
 export class Copy4AIService {
 
+    // Swappable system boundary: tests replace this with an in-memory clipboard
+    // (vscode.env.clipboard is Object.frozen, so it cannot be stubbed in-place)
+    public static clipboard: vscode.Clipboard = vscode.env.clipboard;
+
     public static async copyToClipboard(
         uri?: vscode.Uri,
         uris?: ReadonlyArray<vscode.Uri>,
@@ -155,7 +159,7 @@ export class Copy4AIService {
                 }
 
                 progress.report({ increment: 5, message: "Copying to clipboard..." });
-                await vscode.env.clipboard.writeText(formattedContent);
+                await this.clipboard.writeText(formattedContent);
 
                 if (config.enableTokenCounting && !options.projectTreeOnly) {
                     progress.report({ increment: 5, message: "Counting tokens..." });

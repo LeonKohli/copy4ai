@@ -1,14 +1,24 @@
 const assert = require('assert');
 const vscode = require('vscode');
-const { 
-    OutputFormatter, 
-    FileProcessor, 
-    IgnoreUtils, 
+const {
+    OutputFormatter,
+    FileProcessor,
+    IgnoreUtils,
     ConfigurationService,
     ProjectTreeGenerator,
-    TokenCounter
+    TokenCounter,
+    Copy4AIService
 } = require('../out/extension');
 const path = require('path');
+
+// In-memory stand-in for vscode.env.clipboard so test runs don't spam the OS
+// clipboard (and clipboard-manager history). vscode.env.clipboard itself is
+// Object.frozen and cannot be stubbed; Copy4AIService.clipboard is the seam.
+const testClipboard = {
+    text: '',
+    async readText() { return this.text; },
+    async writeText(value) { this.text = value; }
+};
 
 class MemoryFileSystemProvider {
     constructor(files) {
@@ -116,6 +126,7 @@ class MemoryFileSystemProvider {
 suite('Copy4AI Extension Test Suite', () => {
     suiteSetup(async () => {
         // This is run once before all tests
+        Copy4AIService.clipboard = testClipboard;
         await vscode.commands.executeCommand('workbench.action.closeAllEditors');
     });
 
@@ -125,7 +136,8 @@ suite('Copy4AI Extension Test Suite', () => {
     });
 
     setup(() => {
-        // This is run before each test
+        // Isolate tests from each other's clipboard writes
+        testClipboard.text = '';
     });
 
     teardown(async () => {
@@ -143,8 +155,6 @@ suite('Copy4AI Extension Test Suite', () => {
                 await ext.activate();
             }
             
-            // Wait a bit for commands to register
-            await new Promise(resolve => setTimeout(resolve, 1000));
             
             const commands = await vscode.commands.getCommands();
             assert.ok(commands.includes('snapsource.copyToClipboard'));
@@ -436,15 +446,11 @@ suite('Copy4AI Extension Test Suite', () => {
                 await config.update('outputFormat', undefined, vscode.ConfigurationTarget.Global);
                 await config.update('maxDepth', undefined, vscode.ConfigurationTarget.Global);
                 
-                // Wait for settings to be reset
-                await new Promise(resolve => setTimeout(resolve, 1000));
                 
                 // Update settings
                 await config.update('outputFormat', 'markdown', vscode.ConfigurationTarget.Global);
                 await config.update('maxDepth', 5, vscode.ConfigurationTarget.Global);
                 
-                // Wait for settings to be applied
-                await new Promise(resolve => setTimeout(resolve, 1000));
                 
                 // Get a fresh configuration instance
                 const updatedConfig = vscode.workspace.getConfiguration('copy4ai');
@@ -477,13 +483,11 @@ suite('Copy4AI Extension Test Suite', () => {
                 // Open the workspace where the file is located
                 await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(testWorkspacePath));
                 
-                // Wait for workspace to open
-                await new Promise(resolve => setTimeout(resolve, 500));
                 
                 const uri = vscode.Uri.file(testFilePath);
                 await vscode.commands.executeCommand('snapsource.copyToClipboard', uri);
                 
-                const clipboardContent = await vscode.env.clipboard.readText();
+                const clipboardContent = await testClipboard.readText();
                 assert.ok(clipboardContent.includes('[Binary file content not included]'), 
                     'Should indicate binary file content is not included');
             } finally {
@@ -512,14 +516,12 @@ suite('Copy4AI Extension Test Suite', () => {
                 if (!vscode.workspace.workspaceFolders || 
                     !vscode.workspace.workspaceFolders[0].uri.fsPath.includes('testWorkspace')) {
                     await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(testWorkspacePath));
-                    // Wait for workspace to open
-                    await new Promise(resolve => setTimeout(resolve, 500));
                 }
                 
                 const uri = vscode.Uri.file(testFilePath);
                 await vscode.commands.executeCommand('snapsource.copyToClipboard', uri);
                 
-                const clipboardContent = await vscode.env.clipboard.readText();
+                const clipboardContent = await testClipboard.readText();
                 assert.ok(clipboardContent.includes('[File too large:') && clipboardContent.includes('2.0 MB'), 
                     'Should indicate file size exceeds limit');
             } finally {
@@ -556,24 +558,18 @@ suite('Copy4AI Extension Test Suite', () => {
                     uris.push(vscode.Uri.file(filePath));
                 }));
 
-                // Ensure files are written before proceeding
-                await new Promise(resolve => setTimeout(resolve, 500));
 
                 // Ensure we're in the right workspace
                 if (!vscode.workspace.workspaceFolders || 
                     !vscode.workspace.workspaceFolders[0].uri.fsPath.includes('testWorkspace')) {
                     await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(testWorkspacePath));
-                    // Wait for workspace to open
-                    await new Promise(resolve => setTimeout(resolve, 1000));
                 }
                 
                 // Test multiple file selection
                 await vscode.commands.executeCommand('snapsource.copyToClipboard', uris[0], uris);
                 
-                // Ensure clipboard is updated before reading
-                await new Promise(resolve => setTimeout(resolve, 500));
                 
-                const clipboardContent = await vscode.env.clipboard.readText();
+                const clipboardContent = await testClipboard.readText();
                 assert.ok(clipboardContent.includes('Test content 1'), 'Should include first file content');
                 assert.ok(clipboardContent.includes('Test content 2'), 'Should include second file content');
             } finally {
@@ -595,7 +591,6 @@ suite('Copy4AI Extension Test Suite', () => {
             if (!vscode.workspace.workspaceFolders ||
                 !vscode.workspace.workspaceFolders[0].uri.fsPath.includes('testWorkspace')) {
                 await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(testWorkspacePath));
-                await new Promise(resolve => setTimeout(resolve, 1000));
             }
 
             const uri = vscode.Uri.file(path.join(testWorkspacePath, 'app.js'));
@@ -603,9 +598,8 @@ suite('Copy4AI Extension Test Suite', () => {
             await vscode.window.showTextDocument(document);
 
             await vscode.commands.executeCommand('snapsource.copyToClipboard');
-            await new Promise(resolve => setTimeout(resolve, 500));
 
-            const clipboardContent = await vscode.env.clipboard.readText();
+            const clipboardContent = await testClipboard.readText();
             assert.ok(clipboardContent.includes('app.js'), 'Should include active editor file path');
             assert.ok(
                 clipboardContent.includes("console.log('Hello from the test workspace!');"),
@@ -614,6 +608,27 @@ suite('Copy4AI Extension Test Suite', () => {
         });
     });
     
+
+    suite('Workspace Trust Manifest', () => {
+        // A real untrusted-workspace integration test is not possible:
+        // @vscode/test-electron hardcodes --disable-workspace-trust (runTest.ts),
+        // so workspace.isTrusted is always true under the test runner.
+        // This guards the declarative contract instead: a newly added setting
+        // must not silently become workspace-configurable in Restricted Mode.
+        test('Every contributed setting is listed in restrictedConfigurations', () => {
+            const manifest = require('../package.json');
+
+            const contributed = manifest.contributes.configuration
+                .flatMap(section => Object.keys(section.properties));
+            const restricted = manifest.capabilities.untrustedWorkspaces.restrictedConfigurations;
+
+            assert.deepStrictEqual(
+                [...contributed].sort(),
+                [...restricted].sort(),
+                'contributes.configuration and untrustedWorkspaces.restrictedConfigurations must list the same settings'
+            );
+        });
+    });
 
     suite('Exclusion Patterns', () => {
         test('Should exclude files using glob patterns', () => {
@@ -748,8 +763,6 @@ suite('Copy4AI Extension Test Suite', () => {
                 // Open the test workspace
                 await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(testWorkspacePath));
                 
-                // Wait for workspace to open and settings to be loaded
-                await new Promise(resolve => setTimeout(resolve, 2000));
                 
                 // Get the configuration
                 const config = vscode.workspace.getConfiguration('copy4ai');
@@ -763,11 +776,9 @@ suite('Copy4AI Extension Test Suite', () => {
                 // Test copying the project structure
                 await vscode.commands.executeCommand('snapsource.copyProjectStructure');
                 
-                // Wait longer for the command to complete and clipboard to update
-                await new Promise(resolve => setTimeout(resolve, 3000));
                 
                 // Get clipboard content
-                const clipboardContent = await vscode.env.clipboard.readText();
+                const clipboardContent = await testClipboard.readText();
                 
                 // For debugging purposes only - can be removed in production
                 // console.log('Clipboard content:', clipboardContent);
@@ -819,8 +830,6 @@ suite('Copy4AI Extension Test Suite', () => {
                 // Open the test workspace
                 await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(testWorkspacePath));
                 
-                // Wait for workspace to open
-                await new Promise(resolve => setTimeout(resolve, 2000));
                 
                 // Call the copyProjectStructure command with the subfolder URI
                 await vscode.commands.executeCommand(
@@ -828,11 +837,9 @@ suite('Copy4AI Extension Test Suite', () => {
                     vscode.Uri.file(subfolderPath)
                 );
                 
-                // Wait for the command to complete
-                await new Promise(resolve => setTimeout(resolve, 3000));
                 
                 // Read the clipboard content
-                const clipboardContent = await vscode.env.clipboard.readText();
+                const clipboardContent = await testClipboard.readText();
                 
                 // Verify the clipboard content only includes the subfolder structure
                 assert.ok(clipboardContent.includes('subfolder/'), 'Should include subfolder name at the top');
@@ -861,8 +868,6 @@ suite('Copy4AI Extension Test Suite', () => {
                 // Open the test workspace (it already has UTF-16 LE requirements.txt and other files)
                 await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(testWorkspacePath));
                 
-                // Wait for workspace to open
-                await new Promise(resolve => setTimeout(resolve, 2000));
                 
                 // Copy the entire test workspace content
                 await vscode.commands.executeCommand(
@@ -870,11 +875,9 @@ suite('Copy4AI Extension Test Suite', () => {
                     vscode.Uri.file(testWorkspacePath)
                 );
                 
-                // Wait for the command to complete
-                await new Promise(resolve => setTimeout(resolve, 3000));
                 
                 // Read the clipboard content
-                const clipboardContent = await vscode.env.clipboard.readText();
+                const clipboardContent = await testClipboard.readText();
                 
 
                 // Verify that UTF-16 file is handled gracefully

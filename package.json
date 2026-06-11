@@ -304,7 +304,8 @@
     "watch": "tsc -watch -p ./",
     "pretest": "bun run compile && bun run lint",
     "lint": "eslint src",
-    "test": "vscode-test --config ./vscode-test.config.js"
+    "test": "vscode-test --config ./vscode-test.config.js",
+    "test:coverage": "vscode-test --config ./vscode-test.config.js --coverage"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",

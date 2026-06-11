@@ -2,3 +2,14 @@ node_modules
 .vscode-test/
 *.vsix
 out/
+coverage/
+
+# Files created by the test suite inside the checked-in test workspace;
+# cleaned up in teardown, but a crashed run must not dirty the repo
+test/testWorkspace/test.bin
+test/testWorkspace/large.txt
+test/testWorkspace/test1.txt
+test/testWorkspace/test2.txt
+test/testWorkspace/scm-*.txt
+test/testWorkspace/diffrepo/
+test/testWorkspace/subfolder/
