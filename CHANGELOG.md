@@ -2,6 +2,12 @@
 
 All notable changes to the "Copy4AI" extension will be documented in this file.
 
+## [1.5.1] - 2026-06-30
+
+### Fixed
+- Keyboard shortcuts now copy the full Explorer or Source Control selection instead of falling back to a single active file. (#24)
+- Nested or duplicate selections are deduped before copying file contents or Source Control diffs, so selecting both a folder and one of its children no longer copies the child twice. (#25)
+
 ## [1.5.0] - 2026-06-11
 
 ### Added

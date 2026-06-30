@@ -3,6 +3,7 @@
 .vscode-test/**
 test/**
 src/**
+coverage/**
 .gitignore
 .yarnrc
 .eslintrc*

@@ -29,6 +29,8 @@ Copy4AI (formerly SnapSource) is a Visual Studio Code extension that copies file
 3. The content is copied to your clipboard. Dot files and binary files are left out, ignore patterns and size limits apply.
 4. Paste the content into your preferred LLM interface.
 
+Keyboard shortcuts use the same Explorer or Source Control selection as the context menu, including multi-select.
+
 **Copy to Clipboard (Copy4AI)** is also available from:
 
 - The **Source Control view**: right-click one or more changed files to copy them — handy when your working set is scattered across the project. Deleted files in the selection are skipped with a notice.
@@ -51,11 +53,13 @@ This extension contributes the following settings:
 | `copy4ai.ignoreGitIgnore` | Respect .gitignore rules when generating the project tree and copying files | `true` |
 | `copy4ai.ignoreDotFiles` | Ignore files and directories that start with a dot (.) when generating the project tree and copying files | `true` |
 | `copy4ai.maxDepth` | Maximum depth of the project tree | `5` |
+| `copy4ai.exclude` | Structured exclusion config with `paths` and `patterns`; preferred over the legacy exclusion keys | `{ "paths": [], "patterns": ["node_modules", "*.log"] }` |
 | `copy4ai.excludePaths` | Array of absolute paths relative to workspace root to exclude (e.g., `["src/config", "vendor/unwanted"]`) | `[]` |
 | `copy4ai.excludePatterns` | Array of glob patterns to exclude (e.g., `["*.tmp", "build/**"]`) | `["node_modules", "*.log"]` |
 | `copy4ai.outputFormat` | Output format for the copied content (options: "plaintext", "markdown", "xml") | `"markdown"` |
 | `copy4ai.maxFileSize` | Maximum file size (in bytes) to include in the output | `1048576` (1MB) |
 | `copy4ai.includeProjectTree` | Include the project tree structure in the output | `true` |
+| `copy4ai.excludeContentPatterns` | Show matching files in the project tree but omit their content | `[]` |
 | `copy4ai.compressCode` | Remove extra whitespace and empty lines from code when copying | `false` |
 | `copy4ai.removeComments` | Remove comments from code when copying | `false` |
 | `copy4ai.llmModel` | LLM model used for token counting and context-window warnings | `"claude-sonnet-4-6"` |
@@ -64,6 +68,27 @@ This extension contributes the following settings:
 | `copy4ai.enableTokenCounting` | Enable offline token counting and context-window warnings | `false` |
 
 > Dot files are ignored by default; set `copy4ai.ignoreDotFiles` to `false` to include .github and other dot directories. Binary files are detected and excluded.
+
+### Exclusion Configuration
+
+The preferred exclusion setting is the structured `copy4ai.exclude` object; legacy keys are still supported.
+
+```json
+// Preferred
+"copy4ai.exclude": {
+  "paths": ["src/config", "vendor/unwanted-package"],
+  "patterns": ["node_modules", "*.log", "*.tmp", "build/**"]
+}
+
+// Legacy
+"copy4ai.excludePaths": ["src/config", "vendor/unwanted-package"],
+"copy4ai.excludePatterns": ["node_modules", "*.log", "*.tmp", "build/**"]
+```
+
+- **exclude.paths** / **excludePaths**: Exact paths relative to the workspace root.
+- **exclude.patterns** / **excludePatterns**: Glob patterns for broader matches.
+
+If `copy4ai.exclude` is set, it takes precedence over `copy4ai.excludePaths` and `copy4ai.excludePatterns`.
 
 ## 📊 Output Formats
 
@@ -77,70 +102,11 @@ This extension contributes the following settings:
 
 ## 🐛 Known Issues
 
-None at this time.
+Track current reports in [GitHub Issues](https://github.com/LeonKohli/copy4ai/issues).
 
 ## 📝 Release Notes
 
-### 1.3.0
-
-#### Added
-- New `copy4ai.excludeContentPatterns` setting to show files in project tree but exclude their content (fixes #15)
-  - Files matching patterns display `[File content not included]` placeholder
-  - Useful for SVGs, images, or other files you want listed but not included
-
-#### Fixed
-- Fixed markdown code block nesting when copying markdown files containing code blocks (fixes #16)
-- Fixed ESLint configuration for ESLint 9 compatibility
-
-### 1.2.0
-
-#### Added
-- Structured exclusion configuration via `copy4ai.exclude` object
-
-#### Changed
-- Improved project tree generation performance
-- Removed explicit `activationEvents` from package.json
-
-### 1.1.0
-
-#### Major Update - TypeScript Migration
-- **Major refactoring**: Complete migration from JavaScript to TypeScript for enhanced type safety and maintainability
-- Restructured codebase into modular architecture with dedicated service classes
-- Improved error handling, file extension detection, and dependency management
-- Comprehensive repository cleanup removing orphaned and legacy files
-- All 19 tests passing with enhanced test coverage
-
-#### Technical Improvements
-- Better separation of concerns with dedicated utility classes
-- Enhanced code maintainability and extensibility
-- Optimized dependency structure and build process
-- Cleaner API design with well-defined TypeScript interfaces
-
-### 1.0.21
-
-#### Added
-- Enhanced GitHub Actions workflow to publish to both Visual Studio Marketplace and Open VSX Registry
-- Upgraded to HaaLeo/publish-vscode-extension@v2 for better performance and features
-- Single packaging with reuse pattern for more efficient publishing process
-
-### 1.0.20
-
-#### Fixed
-- **CRITICAL FIX**: Resolved issue where files with unsupported encodings (UTF-16, UTF-32) would cause the extension to stop processing subsequent files (fixes #8)
-- Improved error handling to ensure all processable files are included even when some files cannot be read
-- Enhanced encoding detection to better identify and handle non-UTF-8 files
-
-#### Added
-- Better error messages for files with unsupported encodings
-- Comprehensive test coverage for encoding issues and error handling scenarios
-
-### 1.0.19
-
-#### Added
-- Improved "Copy Project Structure" command to use the selected folder as root
-- When right-clicking on a specific folder, only that folder's structure will be copied
-
-For a full list of changes, please see the [CHANGELOG.md](CHANGELOG.md) file.
+See [CHANGELOG.md](CHANGELOG.md).
 
 ## 🛠️ Development
 
@@ -180,30 +146,3 @@ If you have any feedback or would like to contribute to the development of Copy4
 [![License](https://img.shields.io/github/license/LeonKohli/copy4ai.svg?style=for-the-badge)](https://github.com/leonkohli/copy4ai/blob/master/LICENSE)
 
 </div>
-
-### Exclusion Configuration
-
-The exclusion settings provide precise control over what files and directories are excluded. Preferred is the structured `copy4ai.exclude` object; legacy keys are still supported.
-
-```json
-// Preferred (structured)
-"copy4ai.exclude": {
-  "paths": ["src/config", "vendor/unwanted-package"],
-  "patterns": ["node_modules", "*.log", "*.tmp", "build/**"]
-}
-
-// Legacy (still supported)
-"copy4ai.excludePaths": ["src/config", "vendor/unwanted-package"],
-"copy4ai.excludePatterns": ["node_modules", "*.log", "*.tmp", "build/**"]
-```
-
-- **exclude.paths** / **excludePaths**: Absolute paths relative to workspace root. These are exact path matches that will exclude specific directories or files regardless of their name. This solves the problem of excluding directories with common names (like "config") in specific locations while keeping others.
-- **exclude.patterns** / **excludePatterns**: Standard glob patterns for more general exclusions.
-
-Note: If `copy4ai.exclude` is set, it takes precedence over `copy4ai.excludePaths` / `copy4ai.excludePatterns`.
-
-## 🔍 Output Formats
-
-1. **Plaintext**: A simple text format with clear sections for project structure (if enabled) and file contents.
-2. **Markdown**: A formatted markdown output with code blocks for project structure (if enabled) and file contents.
-3. **XML**: A structured XML format with separate sections for project structure and file contents.
