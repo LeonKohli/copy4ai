@@ -159,6 +159,24 @@ suite('Copy4AI Extension Test Suite', () => {
             const commands = await vscode.commands.getCommands();
             assert.ok(commands.includes('snapsource.copyToClipboard'));
         });
+
+        test('Copy-to-clipboard commands should have distinct keyboard shortcut titles', () => {
+            const manifest = require('../package.json');
+            const commands = manifest.contributes.commands;
+            const copyCommand = commands.find(command => command.command === 'snapsource.copyToClipboard');
+            const scmCopyCommand = commands.find(command => command.command === 'snapsource.copyScmResources');
+
+            assert.notStrictEqual(
+                `${copyCommand.category}: ${copyCommand.title}`,
+                `${scmCopyCommand.category}: ${scmCopyCommand.title}`,
+                'Keyboard Shortcuts should not show duplicate Copy4AI copy command titles'
+            );
+            assert.strictEqual(
+                scmCopyCommand.title,
+                'Copy Source Control File Contents (Copy4AI)',
+                'Keyboard Shortcuts should use the VS Code UI term "Source Control", not SCM'
+            );
+        });
     });
 
     suite('Content Formatting', () => {
@@ -584,6 +602,51 @@ suite('Copy4AI Extension Test Suite', () => {
             }
         });
 
+        test('Should copy keyboard-selected files when invoked without URI arguments', async function() {
+            this.timeout(10000);
+
+            const testWorkspacePath = path.join(__dirname, 'testWorkspace');
+            await vscode.workspace.fs.createDirectory(vscode.Uri.file(testWorkspacePath));
+
+            const testFiles = [
+                { name: 'hotkey-test1.txt', content: 'Hotkey content one' },
+                { name: 'hotkey-test2.txt', content: 'Hotkey content two' }
+            ];
+            const uris = [];
+            const previousProvider = Copy4AIService.keyboardSelectionProvider;
+
+            try {
+                for (const file of testFiles) {
+                    const uri = vscode.Uri.file(path.join(testWorkspacePath, file.name));
+                    await vscode.workspace.fs.writeFile(uri, Buffer.from(file.content));
+                    uris.push(uri);
+                }
+
+                if (!vscode.workspace.workspaceFolders ||
+                    !vscode.workspace.workspaceFolders[0].uri.fsPath.includes('testWorkspace')) {
+                    await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(testWorkspacePath));
+                }
+
+                Copy4AIService.keyboardSelectionProvider = async () => uris;
+
+                await vscode.commands.executeCommand('snapsource.copyToClipboard');
+
+                const clipboardContent = await testClipboard.readText();
+                assert.ok(clipboardContent.includes('Hotkey content one'), 'Should include first keyboard-selected file');
+                assert.ok(clipboardContent.includes('Hotkey content two'), 'Should include second keyboard-selected file');
+            } finally {
+                Copy4AIService.keyboardSelectionProvider = previousProvider;
+
+                for (const uri of uris) {
+                    try {
+                        await vscode.workspace.fs.delete(uri);
+                    } catch (err) {
+                        console.error(`Error cleaning up hotkey test file: ${err.message}`);
+                    }
+                }
+            }
+        });
+
         test('Should copy active editor file when invoked without URI arguments', async function() {
             this.timeout(10000);
 
@@ -596,8 +659,14 @@ suite('Copy4AI Extension Test Suite', () => {
             const uri = vscode.Uri.file(path.join(testWorkspacePath, 'app.js'));
             const document = await vscode.workspace.openTextDocument(uri);
             await vscode.window.showTextDocument(document);
+            const previousProvider = Copy4AIService.keyboardSelectionProvider;
 
-            await vscode.commands.executeCommand('snapsource.copyToClipboard');
+            try {
+                Copy4AIService.keyboardSelectionProvider = async () => [];
+                await vscode.commands.executeCommand('snapsource.copyToClipboard');
+            } finally {
+                Copy4AIService.keyboardSelectionProvider = previousProvider;
+            }
 
             const clipboardContent = await testClipboard.readText();
             assert.ok(clipboardContent.includes('app.js'), 'Should include active editor file path');
@@ -687,6 +756,44 @@ suite('Copy4AI Extension Test Suite', () => {
                         await vscode.workspace.fs.delete(uri);
                     } catch (error) {
                         console.error(`Error cleaning up SCM test file: ${error.message}`);
+                    }
+                }
+            }
+        });
+
+        test('Should copy keyboard-selected files when SCM copy command is invoked without resource states', async function() {
+            this.timeout(10000);
+            await ensureTestWorkspace();
+
+            const testFiles = [
+                { name: 'scm-hotkey-test1.txt', content: 'SCM hotkey content one' },
+                { name: 'scm-hotkey-test2.txt', content: 'SCM hotkey content two' }
+            ];
+            const uris = [];
+            const previousProvider = Copy4AIService.keyboardSelectionProvider;
+
+            try {
+                for (const file of testFiles) {
+                    const uri = vscode.Uri.file(path.join(testWorkspacePath, file.name));
+                    await vscode.workspace.fs.writeFile(uri, Buffer.from(file.content));
+                    uris.push(uri);
+                }
+
+                Copy4AIService.keyboardSelectionProvider = async () => uris;
+
+                await vscode.commands.executeCommand('snapsource.copyScmResources');
+
+                const clipboardContent = await testClipboard.readText();
+                assert.ok(clipboardContent.includes('SCM hotkey content one'), 'Should include first keyboard-selected file');
+                assert.ok(clipboardContent.includes('SCM hotkey content two'), 'Should include second keyboard-selected file');
+            } finally {
+                Copy4AIService.keyboardSelectionProvider = previousProvider;
+
+                for (const uri of uris) {
+                    try {
+                        await vscode.workspace.fs.delete(uri);
+                    } catch (error) {
+                        console.error(`Error cleaning up SCM hotkey test file: ${error.message}`);
                     }
                 }
             }

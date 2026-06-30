@@ -83,7 +83,7 @@
       },
       {
         "command": "snapsource.copyScmResources",
-        "title": "Copy to Clipboard (Copy4AI)",
+        "title": "Copy Source Control File Contents (Copy4AI)",
         "category": "Copy4AI"
       },
       {

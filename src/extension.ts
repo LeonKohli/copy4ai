@@ -10,11 +10,16 @@ import { TokenCounter } from './utils/tokenCounter';
 import { UriUtils } from './utils/uriUtils';
 import { ScmChangesService } from './utils/scmChanges';
 
+type KeyboardSelectionProvider = () => Promise<ReadonlyArray<vscode.Uri>>;
+
 export class Copy4AIService {
 
     // Swappable system boundary: tests replace this with an in-memory clipboard
     // (vscode.env.clipboard is Object.frozen, so it cannot be stubbed in-place)
     public static clipboard: vscode.Clipboard = vscode.env.clipboard;
+
+    public static keyboardSelectionProvider: KeyboardSelectionProvider =
+        async () => Copy4AIService.getKeyboardSelectedResources();
 
     public static async copyToClipboard(
         uri?: vscode.Uri,
@@ -28,7 +33,7 @@ export class Copy4AIService {
         }, async (progress: ProgressReporter, token: CancellationToken) => {
             try {
                 progress.report({ increment: 0, message: "Initializing..." });
-                const itemsToProcess = this.resolveItemsToProcess(uri, uris);
+                const itemsToProcess = await this.resolveItemsToProcess(uri, uris);
 
                 if (itemsToProcess.length === 0) {
                     throw new Error('No files or folders selected');
@@ -244,16 +249,76 @@ export class Copy4AIService {
     private static resolveItemsToProcess(
         uri?: vscode.Uri,
         uris?: ReadonlyArray<vscode.Uri>
-    ): vscode.Uri[] {
+    ): Promise<vscode.Uri[]> {
         if (uris && uris.length > 0) {
-            return [...uris];
+            return Promise.resolve([...uris]);
         }
         if (uri) {
-            return [uri];
+            return Promise.resolve([uri]);
+        }
+
+        return this.resolveKeyboardOrActiveEditorItems();
+    }
+
+    private static async resolveKeyboardOrActiveEditorItems(): Promise<vscode.Uri[]> {
+        const keyboardSelection = await this.keyboardSelectionProvider();
+        if (keyboardSelection.length > 0) {
+            return [...keyboardSelection];
         }
 
         const activeEditorUri = vscode.window.activeTextEditor?.document.uri;
         return activeEditorUri ? [activeEditorUri] : [];
+    }
+
+    private static async getKeyboardSelectedResources(): Promise<vscode.Uri[]> {
+        const previousClipboardText = await vscode.env.clipboard.readText();
+        const sentinel = `copy4ai-selection-probe:${Date.now()}:${Math.random()}`;
+        let probeText = sentinel;
+
+        // VS Code does not expose Explorer multi-selection to extension commands
+        // invoked by keybinding. Its own copyFilePath command can resolve that
+        // focused-list selection, so use it as a temporary bridge and restore
+        // the clipboard before Copy4AI writes the final output.
+        await vscode.env.clipboard.writeText(sentinel);
+        try {
+            await vscode.commands.executeCommand('copyFilePath');
+            probeText = await vscode.env.clipboard.readText();
+
+            if (probeText === sentinel) {
+                return [];
+            }
+
+            return this.parseFilePathClipboard(probeText);
+        } finally {
+            const currentClipboardText = await vscode.env.clipboard.readText();
+            if (currentClipboardText === sentinel || currentClipboardText === probeText) {
+                await vscode.env.clipboard.writeText(previousClipboardText);
+            }
+        }
+    }
+
+    private static parseFilePathClipboard(value: string): vscode.Uri[] {
+        return value
+            .split(/\r?\n/)
+            .map(line => line.trim())
+            .filter(Boolean)
+            .map(item => this.uriFromClipboardPath(item));
+    }
+
+    private static uriFromClipboardPath(value: string): vscode.Uri {
+        if (this.looksLikeUri(value) && !this.looksLikeWindowsDrivePath(value)) {
+            return vscode.Uri.parse(value);
+        }
+
+        return vscode.Uri.file(value);
+    }
+
+    private static looksLikeUri(value: string): boolean {
+        return /^[A-Za-z][A-Za-z0-9+.-]*:/.test(value);
+    }
+
+    private static looksLikeWindowsDrivePath(value: string): boolean {
+        return /^[A-Za-z]:[\\/]/.test(value);
     }
 
     private static getCommonWorkspaceFolder(itemsToProcess: ReadonlyArray<vscode.Uri>): vscode.WorkspaceFolder {
