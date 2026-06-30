@@ -217,14 +217,15 @@ export class Copy4AIService {
 
     public static async copyScmChanges(uris: ReadonlyArray<vscode.Uri>): Promise<void> {
         try {
-            if (uris.length === 0) {
+            const itemsToProcess = await this.dedupeCoveredItems(uris);
+            if (itemsToProcess.length === 0) {
                 throw new Error('No files selected');
             }
 
             const api = await ScmChangesService.getGitApi();
-            const diff = await ScmChangesService.collectDiffs(api, uris);
+            const diff = await ScmChangesService.collectDiffs(api, itemsToProcess);
 
-            const config = ConfigurationService.getConfiguration(uris[0]);
+            const config = ConfigurationService.getConfiguration(itemsToProcess[0]);
             const formattedContent = OutputFormatter.formatScmChangesOutput(config.outputFormat, diff);
             await this.clipboard.writeText(formattedContent);
 
@@ -251,7 +252,7 @@ export class Copy4AIService {
         uris?: ReadonlyArray<vscode.Uri>
     ): Promise<vscode.Uri[]> {
         if (uris && uris.length > 0) {
-            return Promise.resolve([...uris]);
+            return this.dedupeCoveredItems(uris);
         }
         if (uri) {
             return Promise.resolve([uri]);
@@ -263,7 +264,7 @@ export class Copy4AIService {
     private static async resolveKeyboardOrActiveEditorItems(): Promise<vscode.Uri[]> {
         const keyboardSelection = await this.keyboardSelectionProvider();
         if (keyboardSelection.length > 0) {
-            return [...keyboardSelection];
+            return this.dedupeCoveredItems(keyboardSelection);
         }
 
         const activeEditorUri = vscode.window.activeTextEditor?.document.uri;
@@ -319,6 +320,56 @@ export class Copy4AIService {
 
     private static looksLikeWindowsDrivePath(value: string): boolean {
         return /^[A-Za-z]:[\\/]/.test(value);
+    }
+
+    private static async dedupeCoveredItems(items: ReadonlyArray<vscode.Uri>): Promise<vscode.Uri[]> {
+        const seen = new Set<string>();
+        const uniqueItems = items.filter(item => {
+            const key = item.toString();
+            if (seen.has(key)) {
+                return false;
+            }
+            seen.add(key);
+            return true;
+        });
+
+        const selectedDirectories: vscode.Uri[] = [];
+        for (const item of uniqueItems) {
+            try {
+                const stats = await vscode.workspace.fs.stat(item);
+                if (stats.type & vscode.FileType.Directory) {
+                    selectedDirectories.push(item);
+                }
+            } catch (error) {
+                if (!(error instanceof vscode.FileSystemError && error.code === 'FileNotFound')) {
+                    throw error;
+                }
+            }
+        }
+
+        if (selectedDirectories.length === 0) {
+            return uniqueItems;
+        }
+
+        return uniqueItems.filter(item => {
+            return !selectedDirectories.some(directory => this.isCoveredBySelectedDirectory(directory, item));
+        });
+    }
+
+    private static isCoveredBySelectedDirectory(directory: vscode.Uri, item: vscode.Uri): boolean {
+        if (directory.toString() === item.toString()) {
+            return false;
+        }
+
+        try {
+            return this.isDescendantPath(UriUtils.relativePath(directory, item));
+        } catch {
+            return false;
+        }
+    }
+
+    private static isDescendantPath(relativePath: string): boolean {
+        return relativePath !== '' && relativePath !== '..' && !relativePath.startsWith('../');
     }
 
     private static getCommonWorkspaceFolder(itemsToProcess: ReadonlyArray<vscode.Uri>): vscode.WorkspaceFolder {

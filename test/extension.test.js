@@ -647,6 +647,107 @@ suite('Copy4AI Extension Test Suite', () => {
             }
         });
 
+        test('Should copy duplicate selected files only once', async function() {
+            this.timeout(10000);
+
+            const testWorkspacePath = path.join(__dirname, 'testWorkspace');
+            const uri = vscode.Uri.file(path.join(testWorkspacePath, 'duplicate-selection.txt'));
+
+            try {
+                await vscode.workspace.fs.writeFile(uri, Buffer.from('Duplicate selection content'));
+
+                if (!vscode.workspace.workspaceFolders ||
+                    !vscode.workspace.workspaceFolders[0].uri.fsPath.includes('testWorkspace')) {
+                    await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(testWorkspacePath));
+                }
+
+                await vscode.commands.executeCommand('snapsource.copyToClipboard', uri, [uri, uri]);
+
+                const clipboardContent = await testClipboard.readText();
+                const contentOccurrences = clipboardContent.match(/Duplicate selection content/g) ?? [];
+                assert.strictEqual(contentOccurrences.length, 1, 'Duplicate file selections should be copied once');
+            } finally {
+                try {
+                    await vscode.workspace.fs.delete(uri);
+                } catch (err) {
+                    console.error(`Error cleaning up duplicate selection test file: ${err.message}`);
+                }
+            }
+        });
+
+        test('Should copy nested explorer selections only once when folder and child are both selected', async function() {
+            this.timeout(10000);
+
+            const testWorkspacePath = path.join(__dirname, 'testWorkspace');
+            const folderUri = vscode.Uri.file(path.join(testWorkspacePath, 'nested-copy'));
+            const childUri = vscode.Uri.file(path.join(testWorkspacePath, 'nested-copy', 'child.txt'));
+
+            try {
+                await vscode.workspace.fs.createDirectory(folderUri);
+                await vscode.workspace.fs.writeFile(childUri, Buffer.from('Nested explorer child content'));
+
+                if (!vscode.workspace.workspaceFolders ||
+                    !vscode.workspace.workspaceFolders[0].uri.fsPath.includes('testWorkspace')) {
+                    await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(testWorkspacePath));
+                }
+
+                await vscode.commands.executeCommand('snapsource.copyToClipboard', folderUri, [folderUri, childUri]);
+
+                const clipboardContent = await testClipboard.readText();
+                const childContentOccurrences = clipboardContent.match(/Nested explorer child content/g) ?? [];
+                assert.strictEqual(
+                    childContentOccurrences.length,
+                    1,
+                    'Child file content should appear only once when both its folder and file are selected'
+                );
+            } finally {
+                try {
+                    await vscode.workspace.fs.delete(folderUri, { recursive: true });
+                } catch (err) {
+                    console.error(`Error cleaning up nested explorer selection test folder: ${err.message}`);
+                }
+            }
+        });
+
+        test('Should copy nested keyboard selections only once when folder and child are both selected', async function() {
+            this.timeout(10000);
+
+            const testWorkspacePath = path.join(__dirname, 'testWorkspace');
+            const folderUri = vscode.Uri.file(path.join(testWorkspacePath, 'nested-hotkey-copy'));
+            const childUri = vscode.Uri.file(path.join(testWorkspacePath, 'nested-hotkey-copy', 'child.txt'));
+            const previousProvider = Copy4AIService.keyboardSelectionProvider;
+
+            try {
+                await vscode.workspace.fs.createDirectory(folderUri);
+                await vscode.workspace.fs.writeFile(childUri, Buffer.from('Nested keyboard child content'));
+
+                if (!vscode.workspace.workspaceFolders ||
+                    !vscode.workspace.workspaceFolders[0].uri.fsPath.includes('testWorkspace')) {
+                    await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(testWorkspacePath));
+                }
+
+                Copy4AIService.keyboardSelectionProvider = async () => [folderUri, childUri, childUri];
+
+                await vscode.commands.executeCommand('snapsource.copyToClipboard');
+
+                const clipboardContent = await testClipboard.readText();
+                const childContentOccurrences = clipboardContent.match(/Nested keyboard child content/g) ?? [];
+                assert.strictEqual(
+                    childContentOccurrences.length,
+                    1,
+                    'Child file content should appear only once for nested keyboard selections'
+                );
+            } finally {
+                Copy4AIService.keyboardSelectionProvider = previousProvider;
+
+                try {
+                    await vscode.workspace.fs.delete(folderUri, { recursive: true });
+                } catch (err) {
+                    console.error(`Error cleaning up nested keyboard selection test folder: ${err.message}`);
+                }
+            }
+        });
+
         test('Should copy active editor file when invoked without URI arguments', async function() {
             this.timeout(10000);
 
@@ -799,6 +900,39 @@ suite('Copy4AI Extension Test Suite', () => {
             }
         });
 
+        test('Should copy nested SCM selections only once when folder and child are both selected', async function() {
+            this.timeout(10000);
+            await ensureTestWorkspace();
+
+            const folderUri = vscode.Uri.file(path.join(testWorkspacePath, 'scm-nested'));
+            const childUri = vscode.Uri.file(path.join(testWorkspacePath, 'scm-nested', 'child.txt'));
+
+            try {
+                await vscode.workspace.fs.createDirectory(folderUri);
+                await vscode.workspace.fs.writeFile(childUri, Buffer.from('Nested SCM child content'));
+
+                await vscode.commands.executeCommand(
+                    'snapsource.copyScmResources',
+                    { resourceUri: folderUri },
+                    { resourceUri: childUri }
+                );
+
+                const clipboardContent = await testClipboard.readText();
+                const childContentOccurrences = clipboardContent.match(/Nested SCM child content/g) ?? [];
+                assert.strictEqual(
+                    childContentOccurrences.length,
+                    1,
+                    'Child file content should appear only once when both its folder and file are selected'
+                );
+            } finally {
+                try {
+                    await vscode.workspace.fs.delete(folderUri, { recursive: true });
+                } catch (error) {
+                    console.error(`Error cleaning up nested SCM test folder: ${error.message}`);
+                }
+            }
+        });
+
         test('Should skip deleted files in SCM selection and copy the rest', async function() {
             this.timeout(10000);
             await ensureTestWorkspace();
@@ -856,6 +990,8 @@ suite('Copy4AI Extension Test Suite', () => {
         const trackedUri = vscode.Uri.file(path.join(repoDir, 'tracked.txt'));
         const pristineUri = vscode.Uri.file(path.join(repoDir, 'pristine.txt'));
         const brandnewUri = vscode.Uri.file(path.join(repoDir, 'brandnew.txt'));
+        const nestedDiffFolderUri = vscode.Uri.file(path.join(repoDir, 'nested-diff'));
+        const nestedDiffChildUri = vscode.Uri.file(path.join(repoDir, 'nested-diff', 'child.txt'));
         let gitRepo;
 
         function git(args) {
@@ -871,11 +1007,14 @@ suite('Copy4AI Extension Test Suite', () => {
             // developer's global git config (e.g. diff.mnemonicprefix)
             git('config diff.mnemonicprefix false');
             git('config diff.noprefix false');
+            await vscode.workspace.fs.createDirectory(nestedDiffFolderUri);
             await vscode.workspace.fs.writeFile(trackedUri, Buffer.from('original line\n'));
             await vscode.workspace.fs.writeFile(pristineUri, Buffer.from('unchanged content\n'));
+            await vscode.workspace.fs.writeFile(nestedDiffChildUri, Buffer.from('nested original\n'));
             git('add .');
             git('commit -m initial');
             await vscode.workspace.fs.writeFile(trackedUri, Buffer.from('changed line\n'));
+            await vscode.workspace.fs.writeFile(nestedDiffChildUri, Buffer.from('nested changed\n'));
             await vscode.workspace.fs.writeFile(brandnewUri, Buffer.from('fresh content\n'));
 
             const gitExtension = vscode.extensions.getExtension('vscode.git');
@@ -938,6 +1077,21 @@ suite('Copy4AI Extension Test Suite', () => {
             assert.strictEqual(trackedHeaders, 1, 'Should include the duplicated selection only once');
             assert.ok(clipboardContent.includes('+changed line'), 'Should include the modified file diff');
             assert.ok(clipboardContent.includes('+fresh content'), 'Should include the untracked file diff');
+        });
+
+        test('Should copy nested diff selections only once when folder and child are both selected', async function() {
+            this.timeout(10000);
+
+            await vscode.commands.executeCommand(
+                'snapsource.copyScmChanges',
+                { resourceUri: nestedDiffFolderUri },
+                { resourceUri: nestedDiffChildUri }
+            );
+
+            const clipboardContent = await testClipboard.readText();
+            const nestedHeaders = clipboardContent.split('diff --git a/nested-diff/child.txt').length - 1;
+            assert.strictEqual(nestedHeaders, 1, 'Should include the nested child diff only once');
+            assert.ok(clipboardContent.includes('+nested changed'), 'Should include the nested child change');
         });
 
         test('Should fail without touching the clipboard when selection has no changes', async function() {
