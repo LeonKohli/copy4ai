@@ -92,8 +92,7 @@ export class FileProcessor {
             }
 
             try {
-                let content = new TextDecoder('utf-8', { fatal: true }).decode(fileBuffer);
-                content = this.processContent(content, options.removeComments, options.compressCode);
+                const content = new TextDecoder('utf-8', { fatal: true }).decode(fileBuffer);
 
                 return {
                     path: relativePath,
@@ -177,38 +176,6 @@ export class FileProcessor {
         }
 
         return results;
-    }
-
-
-
-    public static removeCodeComments(content: string): string {
-        return content
-            // Order matters: block comments must be removed before line comments
-            // to handle cases like /* comment */ followed by // comment on same line
-            .replace(/\/\*[\s\S]*?\*\//g, '')
-            .replace(/\/\/.*$/gm, '');
-    }
-
-    public static compressCodeContent(content: string): string {
-        return content
-            .split('\n')
-            .map(line => line.trim())
-            .filter(line => line.length > 0)
-            .join('\n');
-    }
-
-    public static processContent(content: string, removeComments: boolean, compressCode: boolean): string {
-        let processedContent = content;
-
-        if (removeComments) {
-            processedContent = this.removeCodeComments(processedContent);
-        }
-
-        if (compressCode) {
-            processedContent = this.compressCodeContent(processedContent);
-        }
-
-        return processedContent;
     }
 
     private static formatFileSize(bytes: number): string {

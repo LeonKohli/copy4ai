@@ -152,8 +152,6 @@ export class Copy4AIService {
 
                     const processOptions: ProcessFileOptions = {
                         maxFileSize: config.maxFileSize,
-                        compressCode: config.compressCode,
-                        removeComments: config.removeComments,
                         isExcludedByResourcePath,
                         shouldExcludeContent,
                         cancellationToken: token

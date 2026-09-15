@@ -17,8 +17,6 @@ export class ConfigurationService {
             outputFormat: config.get('outputFormat', 'markdown'),
             maxFileSize: config.get('maxFileSize', 1024 * 1024),
             includeProjectTree: config.get('includeProjectTree', true),
-            compressCode: config.get('compressCode', false),
-            removeComments: config.get('removeComments', false),
             llmModel: config.get('llmModel', 'claude-sonnet-4-6'),
             maxTokens: config.get('maxTokens', null),
             enableTokenWarning: config.get('enableTokenWarning', true),

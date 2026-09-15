@@ -345,80 +345,46 @@ suite('Copy4AI Extension Test Suite', () => {
         });
     });
 
-    suite('Content Processing', () => {
-        test('Should remove comments correctly', () => {
-            const testCases = [
-                {
-                    input: '// Single line comment\nconst x = 1;\n/* Multi\nline\ncomment */\nconst y = 2;',
-                    expected: '\nconst x = 1;\n\nconst y = 2;'
-                },
-                {
-                    input: 'const x = 1; // Inline comment\nconst y = 2; /* inline multi */',
-                    expected: 'const x = 1; \nconst y = 2; '
-                },
-                {
-                    input: '/* Comment with // nested single line */\ncode();',
-                    expected: '\ncode();'
-                }
+    suite('Source Preservation', () => {
+        test('Should copy links, comments, and whitespace unchanged across file types (#29)', async () => {
+            const folderPath = await require('fs/promises').mkdtemp(path.join(__dirname, 'testWorkspace', 'source-preservation-'));
+            const folder = vscode.Uri.file(folderPath);
+            const config = vscode.workspace.getConfiguration('copy4ai');
+            const originalFormat = config.inspect('outputFormat').globalValue;
+            const originalTree = config.inspect('includeProjectTree').globalValue;
+            const markdown = 'Hello  \n[Test](https://www.example.com)\nWorld!\n\n    indented code\n\n' +
+                '`/* literal */`\n```js\n// code example\n```';
+            const files = [
+                ['README.md', markdown],
+                ['links.markdown', markdown],
+                ['links.MD', markdown],
+                ['script.js', 'const url = "\u{1f600} https://example.com";\nconst pattern = /[/*]/; // comment\n'],
+                ['script.ts', 'const url: string = "https://example.com"; /* comment */\n'],
+                ['script.py', '#!/usr/bin/env python3\n# -*- coding: utf-8 -*-\nif True:\n    result = 4 // 2 # comment\n'],
+                ['main.c', 'const char *url = "https://example.com"; /* comment */\nint/**/main(void) { return 0; }'],
+                ['main.cpp', 'auto text = R"tag(first\n\n    /* literal */)tag"; // comment\n'],
+                ['config.yaml', 'message: |\n    first\n\n    second\n'],
+                ['broken.js', 'const text = "unfinished // retain'],
+                ['unknown', 'text /* literal */\r\n\r\n    more text  \r\n']
             ];
-
-            testCases.forEach(({ input, expected }) => {
-                const result = FileProcessor.removeCodeComments(input);
-                assert.strictEqual(result, expected, 'Should remove comments correctly');
-            });
-        });
-
-        test('Should compress code correctly', () => {
-            const testCases = [
-                {
-                    input: '  const x = 1;  \n\n  const y = 2;  \n',
-                    expected: 'const x = 1;\nconst y = 2;'
-                },
-                {
-                    input: '\n\n\nconst x = 1;\n\n\n',
-                    expected: 'const x = 1;'
-                },
-                {
-                    input: '    if (true) {\n        console.log("test");\n    }    ',
-                    expected: 'if (true) {\nconsole.log("test");\n}'
+            try {
+                await config.update('includeProjectTree', false, vscode.ConfigurationTarget.Global);
+                for (const [name, content] of files) {
+                    const uri = vscode.Uri.joinPath(folder, name);
+                    await vscode.workspace.fs.writeFile(uri, Buffer.from(content));
+                    for (const format of ['plaintext', 'markdown', 'xml']) {
+                        await config.update('outputFormat', format, vscode.ConfigurationTarget.Global);
+                        await vscode.commands.executeCommand('snapsource.copyToClipboard', uri);
+                        assert.strictEqual(await testClipboard.readText(), OutputFormatter.formatOutput(format, '', [
+                            { path: path.basename(folderPath) + '/' + name, content }
+                        ]), name + ' in ' + format);
+                    }
                 }
-            ];
-
-            testCases.forEach(({ input, expected }) => {
-                const result = FileProcessor.compressCodeContent(input);
-                assert.strictEqual(result, expected, 'Should compress code correctly');
-            });
-        });
-
-        test('Should handle combined comment removal and compression', () => {
-            const input = `
-                // Header comment
-                function test() {
-                    /* Multi-line
-                       comment */
-                    console.log("test");  // Inline comment
-                }
-            `;
-            
-            const expectedAfterCommentRemoval = `
-                
-                function test() {
-                    
-                    console.log("test");  
-                }
-            `;
-            
-            const expectedFinal = 'function test() {\nconsole.log("test");\n}';
-            
-            const withoutComments = FileProcessor.removeCodeComments(input);
-            assert.strictEqual(withoutComments, expectedAfterCommentRemoval, 'Should remove all comments');
-            
-            const compressed = FileProcessor.compressCodeContent(withoutComments);
-            assert.strictEqual(compressed, expectedFinal, 'Should compress code after comment removal');
-            
-            // Test processContent function directly
-            const processed = FileProcessor.processContent(input, true, true);
-            assert.strictEqual(processed, expectedFinal, 'Should process content with both options');
+            } finally {
+                await config.update('outputFormat', originalFormat, vscode.ConfigurationTarget.Global);
+                await config.update('includeProjectTree', originalTree, vscode.ConfigurationTarget.Global);
+                await vscode.workspace.fs.delete(folder, { recursive: true });
+            }
         });
     });
 
@@ -1559,8 +1525,6 @@ suite('Copy4AI Extension Test Suite', () => {
                         ig,
                         {
                             maxFileSize: 1024 * 1024,
-                            compressCode: false,
-                            removeComments: false,
                             isExcludedByResourcePath,
                             shouldExcludeContent,
                             cancellationToken: tokenSource.token

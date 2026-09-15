@@ -52,8 +52,6 @@ export interface Copy4AIConfiguration {
     readonly outputFormat: OutputFormat;
     readonly maxFileSize: number;
     readonly includeProjectTree: boolean;
-    readonly compressCode: boolean;
-    readonly removeComments: boolean;
     readonly llmModel: string;
     readonly maxTokens: number | null;
     readonly enableTokenWarning: boolean;
@@ -62,8 +60,6 @@ export interface Copy4AIConfiguration {
 
 export interface ProcessFileOptions {
     maxFileSize: number;
-    compressCode: boolean;
-    removeComments: boolean;
     isExcludedByResourcePath: (resourceUri: vscode.Uri) => boolean;
     shouldExcludeContent: (resourceUri: vscode.Uri) => boolean;
     cancellationToken: vscode.CancellationToken;

@@ -22,8 +22,6 @@
     "tree view",
     "markdown",
     "copy",
-    "compress",
-    "remove comments",
     "token count",
     "ai",
     "chatgpt"
@@ -59,8 +57,6 @@
         "copy4ai.includeProjectTree",
         "copy4ai.showCopyProjectStructure",
         "copy4ai.excludeContentPatterns",
-        "copy4ai.compressCode",
-        "copy4ai.removeComments",
         "copy4ai.llmModel",
         "copy4ai.maxTokens",
         "copy4ai.enableTokenWarning",
@@ -273,21 +269,6 @@
             },
             "description": "Glob patterns for files to show in tree but exclude content (e.g., '**/*.svg', '**/*.png'). Files matching these patterns will display '[File content not included]' placeholder.",
             "scope": "resource"
-          }
-        }
-      },
-      {
-        "title": "Copy4AI: Code Processing",
-        "properties": {
-          "copy4ai.compressCode": {
-            "type": "boolean",
-            "default": false,
-            "description": "Remove extra whitespace and empty lines from code when copying"
-          },
-          "copy4ai.removeComments": {
-            "type": "boolean",
-            "default": false,
-            "description": "Remove comments from code when copying"
           }
         }
       },

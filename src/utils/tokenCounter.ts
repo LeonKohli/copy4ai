@@ -119,12 +119,12 @@ export class TokenCounter {
                 const selection = await vscode.window.showWarningMessage(
                     message,
                     'OK',
-                    'Reduce Token Count'
+                    'Configure Exclusions'
                 );
-                if (selection === 'Reduce Token Count') {
+                if (selection === 'Configure Exclusions') {
                     await vscode.commands.executeCommand(
                         'workbench.action.openSettings',
-                        'copy4ai.compressCode'
+                        'copy4ai.exclude'
                     );
                 }
             } else {

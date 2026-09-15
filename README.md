@@ -16,8 +16,6 @@ Copy4AI (formerly SnapSource) is a Visual Studio Code extension that copies file
 - 🧠 Smart binary file detection to exclude non-text content.
 - 📏 Configurable file size limit to prevent oversized outputs.
 - 🔧 Option to include or exclude project tree structure in the output.
-- 🗜️ Simple code compression option for more compact output.
-- 🧹 Option to remove comments from code.
 - 🔢 Offline token counting and context-window warnings for various LLM models.
 
 ## 🔧 How to Use
@@ -30,6 +28,8 @@ Copy4AI (formerly SnapSource) is a Visual Studio Code extension that copies file
 4. Paste the content into your preferred LLM interface.
 
 Keyboard shortcuts use the same Explorer or Source Control selection as the context menu, including multi-select.
+
+File contents retain their comments, indentation, and whitespace when copied.
 
 The included project tree shows the selected files, the contents of selected folders, and their parent directories. Exclusion rules and `copy4ai.maxDepth` still apply.
 
@@ -65,8 +65,6 @@ This extension contributes the following settings:
 | `copy4ai.includeProjectTree` | Include a project tree of the selected files and folders in the output | `true` |
 | `copy4ai.showCopyProjectStructure` | Show Copy Project Structure in Explorer and editor context menus | `true` |
 | `copy4ai.excludeContentPatterns` | Show matching files in the project tree but omit their content | `[]` |
-| `copy4ai.compressCode` | Remove extra whitespace and empty lines from code when copying | `false` |
-| `copy4ai.removeComments` | Remove comments from code when copying | `false` |
 | `copy4ai.llmModel` | LLM model used for token counting and context-window warnings | `"claude-sonnet-4-6"` |
 | `copy4ai.maxTokens` | Maximum number of tokens allowed before warning | `null` |
 | `copy4ai.enableTokenWarning` | Enable warning when token count exceeds the maximum | `true` |
