@@ -57,6 +57,7 @@
         "copy4ai.outputFormat",
         "copy4ai.maxFileSize",
         "copy4ai.includeProjectTree",
+        "copy4ai.showCopyProjectStructure",
         "copy4ai.excludeContentPatterns",
         "copy4ai.compressCode",
         "copy4ai.removeComments",
@@ -135,7 +136,8 @@
         },
         {
           "command": "snapsource.copyProjectStructure",
-          "group": "copy4ai@2"
+          "group": "copy4ai@2",
+          "when": "config.copy4ai.showCopyProjectStructure"
         }
       ],
       "editor/context": [
@@ -147,7 +149,7 @@
         {
           "command": "snapsource.copyProjectStructure",
           "group": "copy4ai@2",
-          "when": "editorFocus"
+          "when": "editorFocus && config.copy4ai.showCopyProjectStructure"
         }
       ],
       "editor/title/context": [
@@ -257,6 +259,11 @@
             "type": "boolean",
             "default": true,
             "description": "Include a project tree of the selected files and folders in the output"
+          },
+          "copy4ai.showCopyProjectStructure": {
+            "type": "boolean",
+            "default": true,
+            "description": "Show Copy Project Structure (Copy4AI) in Explorer and editor context menus"
           },
           "copy4ai.excludeContentPatterns": {
             "type": "array",

@@ -4,6 +4,9 @@ All notable changes to the "Copy4AI" extension will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- `copy4ai.showCopyProjectStructure` controls whether Copy Project Structure appears in Explorer and editor context menus. (#27)
+
 ### Fixed
 - The tree included with copied contents now follows the selected files and folders. (#26, #28)
 
