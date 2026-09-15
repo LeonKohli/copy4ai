@@ -114,6 +114,8 @@ This extension is built with TypeScript and uses the VS Code Extension API. The 
 
 ### Building
 
+Development requires Bun and Node.js 22 or newer. Integration tests run in a separate VS Code Extension Development Host.
+
 ```bash
 bun run compile    # Compile TypeScript to JavaScript
 bun run watch      # Watch mode for development

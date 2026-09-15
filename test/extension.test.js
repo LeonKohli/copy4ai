@@ -995,7 +995,14 @@ suite('Copy4AI Extension Test Suite', () => {
         let gitRepo;
 
         function git(args) {
-            cp.execSync(`git -c user.name=Test -c user.email=test@example.com ${args}`, { cwd: repoDir });
+            cp.execSync(`git -c user.name=Test -c user.email=test@example.com ${args}`, {
+                cwd: repoDir,
+                env: {
+                    ...process.env,
+                    GIT_CONFIG_GLOBAL: require('os').devNull,
+                    GIT_CONFIG_NOSYSTEM: '1'
+                }
+            });
         }
 
         suiteSetup(async function() {

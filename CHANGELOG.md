@@ -2,6 +2,12 @@
 
 All notable changes to the "Copy4AI" extension will be documented in this file.
 
+## [Unreleased]
+
+### Development
+- Update `@vscode/test-electron` to 3.1.0 for current macOS VS Code executables. Node.js 22 or newer is required for development.
+- Isolate Git fixture setup from global and system Git configuration.
+
 ## [1.5.1] - 2026-06-30
 
 ### Fixed
