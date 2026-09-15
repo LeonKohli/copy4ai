@@ -2,19 +2,24 @@
 
 All notable changes to the "Copy4AI" extension will be documented in this file.
 
-## [Unreleased]
+## [2.0.0] - 2026-09-15
+
+### Breaking changes
+
+- Remove `copy4ai.removeComments` and `copy4ai.compressCode`. Copied text now retains comments and whitespace. Remove these keys from your settings.
+- Use file exclusions or Copy Changes to reduce the copied context.
 
 ### Added
+
 - `copy4ai.showCopyProjectStructure` controls whether Copy Project Structure appears in Explorer and editor context menus. (#27)
 
 ### Fixed
+
 - The tree included with copied contents now follows the selected files and folders. (#26, #28)
 - Copy file contents without altering Markdown links, comments, strings, or indentation. (#29)
 
-### Removed
-- Remove `copy4ai.removeComments` and `copy4ai.compressCode`. Existing values no longer affect copied content; remove these keys from your settings. Use file exclusions or Copy Changes to reduce the copied context.
-
 ### Development
+
 - Update `@vscode/test-electron` to 3.1.0 for current macOS VS Code executables. Node.js 22 or newer is required for development.
 - Isolate Git fixture setup from global and system Git configuration.
 

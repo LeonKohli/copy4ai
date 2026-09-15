@@ -134,7 +134,7 @@ jobs:
         id: release_notes
         run: |
           # Get the tag message
-          TAG_MSG=$(git tag -l --format='%(contents)' ${GITHUB_REF#refs/tags/})
+          TAG_MSG=$(git tag -l --format='%(contents:subject)%0a%0a%(contents:body)' "${GITHUB_REF#refs/tags/}")
           
           # Validate tag message
           if [ -z "$TAG_MSG" ]; then
