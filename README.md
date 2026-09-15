@@ -31,6 +31,8 @@ Copy4AI (formerly SnapSource) is a Visual Studio Code extension that copies file
 
 Keyboard shortcuts use the same Explorer or Source Control selection as the context menu, including multi-select.
 
+The included project tree shows the selected files, the contents of selected folders, and their parent directories. Exclusion rules and `copy4ai.maxDepth` still apply.
+
 **Copy to Clipboard (Copy4AI)** is also available from:
 
 - The **Source Control view**: right-click one or more changed files to copy them — handy when your working set is scattered across the project. Deleted files in the selection are skipped with a notice.
@@ -58,7 +60,7 @@ This extension contributes the following settings:
 | `copy4ai.excludePatterns` | Array of glob patterns to exclude (e.g., `["*.tmp", "build/**"]`) | `["node_modules", "*.log"]` |
 | `copy4ai.outputFormat` | Output format for the copied content (options: "plaintext", "markdown", "xml") | `"markdown"` |
 | `copy4ai.maxFileSize` | Maximum file size (in bytes) to include in the output | `1048576` (1MB) |
-| `copy4ai.includeProjectTree` | Include the project tree structure in the output | `true` |
+| `copy4ai.includeProjectTree` | Include a project tree of the selected files and folders in the output | `true` |
 | `copy4ai.excludeContentPatterns` | Show matching files in the project tree but omit their content | `[]` |
 | `copy4ai.compressCode` | Remove extra whitespace and empty lines from code when copying | `false` |
 | `copy4ai.removeComments` | Remove comments from code when copying | `false` |

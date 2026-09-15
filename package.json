@@ -256,7 +256,7 @@
           "copy4ai.includeProjectTree": {
             "type": "boolean",
             "default": true,
-            "description": "Include the project tree structure in the output"
+            "description": "Include a project tree of the selected files and folders in the output"
           },
           "copy4ai.excludeContentPatterns": {
             "type": "array",

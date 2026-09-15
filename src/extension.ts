@@ -68,6 +68,34 @@ export class Copy4AIService {
                     config.excludeContentPatterns
                 );
 
+                const copyableItems: { uri: vscode.Uri; stats: vscode.FileStat }[] = [];
+                const skippedMissingFiles: string[] = [];
+                if (!options.projectTreeOnly) {
+                    for (const item of itemsToProcess) {
+                        if (token.isCancellationRequested) {
+                            throw new vscode.CancellationError();
+                        }
+                        let stats: vscode.FileStat;
+                        try {
+                            stats = await vscode.workspace.fs.stat(item);
+                        } catch (error) {
+                            if (error instanceof vscode.FileSystemError && error.code === 'FileNotFound') {
+                                skippedMissingFiles.push(UriUtils.basename(item));
+                                continue;
+                            }
+                            throw error;
+                        }
+                        const relativePath = UriUtils.relativePath(workspaceFolder.uri, item);
+                        if (!isExcludedByResourcePath(item) &&
+                            !IgnoreUtils.isIgnored(ig, relativePath, !!(stats.type & vscode.FileType.Directory))) {
+                            copyableItems.push({ uri: item, stats });
+                        }
+                    }
+                    if (skippedMissingFiles.length === itemsToProcess.length) {
+                        throw new Error(`Selected file(s) no longer exist on disk: ${skippedMissingFiles.join(', ')}`);
+                    }
+                }
+
                 let projectRootUri = workspaceFolder.uri;
                 let projectRootName = '';
 
@@ -84,13 +112,31 @@ export class Copy4AIService {
                 progress.report({ increment: 15, message: "Generating project tree..." });
                 let projectTree = '';
                 if (includeProjectTree) {
+                    const selectedPaths = copyableItems.map(item => UriUtils.relativePath(workspaceFolder.uri, item.uri));
+                    const isExcludedFromTree = (resourceUri: vscode.Uri): boolean => {
+                        if (isExcludedByResourcePath(resourceUri)) {
+                            return true;
+                        }
+                        if (options.projectTreeOnly) {
+                            return false;
+                        }
+
+                        const relativePath = UriUtils.relativePath(workspaceFolder.uri, resourceUri);
+                        return !selectedPaths.some(selectedPath =>
+                            selectedPath === '' ||
+                            relativePath === selectedPath ||
+                            relativePath.startsWith(`${selectedPath}/`) ||
+                            selectedPath.startsWith(`${relativePath}/`)
+                        );
+                    };
+
                     projectTree = await ProjectTreeGenerator.generateProjectTree(
                         projectRootUri,
                         ig,
                         config.maxDepth,
                         0,
                         '',
-                        isExcludedByResourcePath,
+                        isExcludedFromTree,
                         token
                     );
 
@@ -100,7 +146,6 @@ export class Copy4AIService {
                 }
 
                 let processedContent: FileContent[] = [];
-                const skippedMissingFiles: string[] = [];
 
                 if (!options.projectTreeOnly) {
                     progress.report({ increment: 20, message: "Processing files..." });
@@ -114,29 +159,17 @@ export class Copy4AIService {
                         cancellationToken: token
                     };
 
-                    const totalItems = itemsToProcess.length;
+                    const totalItems = copyableItems.length;
                     for (let i = 0; i < totalItems; i++) {
                         if (token.isCancellationRequested) {
                             throw new vscode.CancellationError();
                         }
 
-                        const item = itemsToProcess[i];
+                        const { uri: item, stats } = copyableItems[i];
                         progress.report({
                             increment: 40 / totalItems,
                             message: `Processing ${i+1}/${totalItems}: ${UriUtils.basename(item)}`
                         });
-
-                        // SCM views list deleted files; skip them instead of failing the whole copy
-                        let stats: vscode.FileStat;
-                        try {
-                            stats = await vscode.workspace.fs.stat(item);
-                        } catch (error) {
-                            if (error instanceof vscode.FileSystemError && error.code === 'FileNotFound') {
-                                skippedMissingFiles.push(UriUtils.basename(item));
-                                continue;
-                            }
-                            throw error;
-                        }
 
                         if (stats.type & vscode.FileType.Directory) {
                             const dirResults = await FileProcessor.processDirectory(
@@ -157,10 +190,6 @@ export class Copy4AIService {
                                 processedContent.push(fileContent);
                             }
                         }
-                    }
-
-                    if (skippedMissingFiles.length === totalItems) {
-                        throw new Error(`Selected file(s) no longer exist on disk: ${skippedMissingFiles.join(', ')}`);
                     }
                 }
 

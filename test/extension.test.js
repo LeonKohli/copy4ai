@@ -602,6 +602,97 @@ suite('Copy4AI Extension Test Suite', () => {
             }
         });
 
+        test('Should limit the copied tree to selected files in every output format (#26, #28)', async () => {
+            const folderPath = await require('fs/promises').mkdtemp(path.join(__dirname, 'testWorkspace', 'selection-tree-'));
+            const folder = vscode.Uri.file(folderPath);
+            const folderName = path.basename(folderPath);
+            const config = vscode.workspace.getConfiguration('copy4ai');
+            const originalFormat = config.inspect('outputFormat').globalValue;
+            const files = [
+                ['src/selected.ts', 'export const selected = true;'],
+                ['lib/second.ts', 'export const second = true;'],
+                ['src/selected.ts.bak', 'unselected sibling'],
+                ['lib/unselected.ts', 'unselected file']
+            ];
+
+            try {
+                for (const [name, content] of files) {
+                    const uri = vscode.Uri.joinPath(folder, name);
+                    await vscode.workspace.fs.createDirectory(vscode.Uri.file(path.dirname(uri.fsPath)));
+                    await vscode.workspace.fs.writeFile(uri, Buffer.from(content));
+                }
+                const selected = files.slice(0, 2).map(([name]) => vscode.Uri.joinPath(folder, name));
+                const expectedTree = `└── ${folderName}\n    ├── lib\n    │   └── second.ts\n    └── src\n        └── selected.ts\n`;
+                const expectedFiles = files.slice(0, 2).map(([name, content]) => ({
+                    path: `${folderName}/${name}`, content
+                }));
+
+                for (const format of ['markdown', 'plaintext', 'xml']) {
+                    await config.update('outputFormat', format, vscode.ConfigurationTarget.Global);
+                    await vscode.commands.executeCommand('snapsource.copyToClipboard', selected[0], selected);
+                    assert.strictEqual(
+                        await testClipboard.readText(),
+                        OutputFormatter.formatOutput(format, expectedTree, expectedFiles)
+                    );
+                }
+            } finally {
+                await config.update('outputFormat', originalFormat, vscode.ConfigurationTarget.Global);
+                await vscode.workspace.fs.delete(folder, { recursive: true });
+            }
+        });
+
+        test('Should omit ancestors of missing and ignored selected files from the copied tree', async () => {
+            const folderPath = await require('fs/promises').mkdtemp(path.join(__dirname, 'testWorkspace', 'selection-skipped-'));
+            const folder = vscode.Uri.file(folderPath);
+            const keep = vscode.Uri.joinPath(folder, 'keep.txt');
+            try {
+                await vscode.workspace.fs.writeFile(keep, Buffer.from('keep this'));
+                for (const name of ['missing/other.txt', 'ignored/skip.log', 'hidden/.skip']) {
+                    const uri = vscode.Uri.joinPath(folder, name);
+                    await vscode.workspace.fs.createDirectory(vscode.Uri.file(path.dirname(uri.fsPath)));
+                    await vscode.workspace.fs.writeFile(uri, Buffer.from('not copied'));
+                }
+                for (const name of ['missing/deleted.txt', 'ignored/skip.log', 'hidden/.skip']) {
+                    await vscode.commands.executeCommand('snapsource.copyToClipboard', keep, [keep, vscode.Uri.joinPath(folder, name)]);
+                    const output = await testClipboard.readText();
+                    const expectedTree = `└── ${path.basename(folderPath)}\n    └── keep.txt\n`;
+                    assert.strictEqual(output, OutputFormatter.formatOutput('markdown', expectedTree, [
+                        { path: `${path.basename(folderPath)}/keep.txt`, content: 'keep this' }
+                    ]), name);
+                }
+            } finally {
+                await vscode.workspace.fs.delete(folder, { recursive: true });
+            }
+        });
+
+        test('Should include selected folder descendants and keep exclusion rules (#26, #28)', async () => {
+            const folderPath = await require('fs/promises').mkdtemp(path.join(__dirname, 'testWorkspace', 'selection-folder-'));
+            const folder = vscode.Uri.file(folderPath);
+            const folderName = path.basename(folderPath);
+            const selectedFolder = vscode.Uri.joinPath(folder, 'src');
+            const selectedFile = vscode.Uri.joinPath(folder, 'other', 'selected.txt');
+
+            try {
+                for (const name of ['src/nested/child.txt', 'src/top.txt', 'src/ignored.log', 'src/.hidden', 'src-other/unselected.txt', 'other/selected.txt', 'other/unselected.txt']) {
+                    const uri = vscode.Uri.joinPath(folder, name);
+                    await vscode.workspace.fs.createDirectory(vscode.Uri.file(path.dirname(uri.fsPath)));
+                    await vscode.workspace.fs.writeFile(uri, Buffer.from(name));
+                }
+                await vscode.commands.executeCommand('snapsource.copyToClipboard', selectedFolder, [
+                    selectedFolder, selectedFile, vscode.Uri.joinPath(selectedFolder, 'top.txt')
+                ]);
+                const output = await testClipboard.readText();
+                const expectedTree = `└── ${folderName}\n    ├── other\n    │   └── selected.txt\n    └── src\n        ├── nested\n        │   └── child.txt\n        └── top.txt\n`;
+                assert.ok(output.startsWith(`# Project Structure\n\n\`\`\`\n${expectedTree}\`\`\`\n`), output);
+                assert.ok(!output.includes('unselected.txt'));
+                assert.ok(!output.includes('ignored.log'));
+                assert.ok(!output.includes('.hidden'));
+                assert.strictEqual((output.match(/## .*\/src\/top.txt/g) ?? []).length, 1);
+            } finally {
+                await vscode.workspace.fs.delete(folder, { recursive: true });
+            }
+        });
+
         test('Should copy keyboard-selected files when invoked without URI arguments', async function() {
             this.timeout(10000);
 
