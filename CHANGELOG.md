@@ -2,6 +2,12 @@
 
 All notable changes to the "Copy4AI" extension will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+
+- `copy4ai.excludePaths` and `copy4ai.excludePatterns` work again when `copy4ai.exclude` is not set in your user or workspace settings.
+
 ## [2.0.0] - 2026-09-15
 
 ### Breaking changes

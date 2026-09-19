@@ -1179,6 +1179,74 @@ suite('Copy4AI Extension Test Suite', () => {
     });
 
     suite('Exclusion Patterns', () => {
+        test('Should resolve exclusion settings before copying the tree and file contents', async () => {
+            const folderPath = await require('fs/promises').mkdtemp(path.join(__dirname, 'testWorkspace', 'legacy-exclusions-'));
+            const folder = vscode.Uri.file(folderPath);
+            const config = vscode.workspace.getConfiguration('copy4ai', folder);
+            const original = ['exclude', 'excludePaths', 'excludePatterns', 'ignoreGitIgnore'].map(key => ({ ...config.inspect(key), key }));
+            const settingsUri = vscode.Uri.joinPath(vscode.workspace.getWorkspaceFolder(folder).uri, '.vscode', 'settings.json');
+            const settingsBytes = await vscode.workspace.fs.readFile(settingsUri);
+
+            try {
+                for (const { key } of original) {
+                    await config.update(key, undefined, vscode.ConfigurationTarget.Global);
+                    await config.update(key, undefined, vscode.ConfigurationTarget.Workspace);
+                }
+                await config.update('ignoreGitIgnore', false, vscode.ConfigurationTarget.Workspace);
+                const privatePath = `${path.basename(folderPath)}/private`;
+                const files = ['keep.txt', 'skip.tmp', 'private/key.txt', 'debug.log', 'node_modules/dependency.js'];
+                for (const name of files) {
+                    const uri = vscode.Uri.joinPath(folder, name);
+                    await vscode.workspace.fs.createDirectory(vscode.Uri.file(path.dirname(uri.fsPath)));
+                    await vscode.workspace.fs.writeFile(uri, Buffer.from(`contents of ${name}`));
+                }
+
+                const scenarios = [
+                    { name: 'legacy settings', legacy: true, excluded: ['skip.tmp', 'private/key.txt'] },
+                    { name: 'defaults', excluded: ['debug.log', 'node_modules/dependency.js'] },
+                    {
+                        name: 'explicit empty object overrides legacy settings', legacy: true,
+                        global: {}, excluded: ['debug.log', 'node_modules/dependency.js']
+                    },
+                    {
+                        name: 'empty arrays disable exclusions', legacy: true,
+                        workspace: { paths: [], patterns: [] }, excluded: []
+                    },
+                    {
+                        name: 'partial object retains defaults', legacy: true,
+                        workspace: { paths: [privatePath] },
+                        excluded: ['private/key.txt', 'debug.log', 'node_modules/dependency.js']
+                    },
+                    {
+                        name: 'structured settings merge across scopes', legacy: true,
+                        global: { paths: [privatePath] }, workspace: { patterns: ['*.tmp'] },
+                        excluded: ['skip.tmp', 'private/key.txt']
+                    }
+                ];
+
+                for (const scenario of scenarios) {
+                    await config.update('exclude', scenario.global, vscode.ConfigurationTarget.Global);
+                    await config.update('exclude', scenario.workspace, vscode.ConfigurationTarget.Workspace);
+                    await config.update('excludePaths', scenario.legacy ? [privatePath] : undefined, vscode.ConfigurationTarget.Workspace);
+                    await config.update('excludePatterns', scenario.legacy ? ['*.tmp'] : undefined, vscode.ConfigurationTarget.Workspace);
+                    await vscode.commands.executeCommand('snapsource.copyToClipboard', folder);
+                    const output = await testClipboard.readText();
+                    for (const name of files) {
+                        const included = !scenario.excluded.includes(name);
+                        assert.strictEqual(output.includes(path.basename(name)), included, `${scenario.name}: tree entry ${name}`);
+                        assert.strictEqual(output.includes(`contents of ${name}`), included, `${scenario.name}: contents of ${name}`);
+                    }
+                }
+            } finally {
+                for (const { key, globalValue, workspaceValue } of original) {
+                    await config.update(key, globalValue, vscode.ConfigurationTarget.Global);
+                    await config.update(key, workspaceValue, vscode.ConfigurationTarget.Workspace);
+                }
+                await vscode.workspace.fs.writeFile(settingsUri, settingsBytes);
+                await vscode.workspace.fs.delete(folder, { recursive: true });
+            }
+        });
+
         test('Should exclude files using glob patterns', () => {
             // Create an ignore instance with standard patterns
             const ig = IgnoreUtils.createIgnoreInstance(['config', '*.log']);

@@ -26,8 +26,10 @@ export class ConfigurationService {
 
     public static getExcludeConfig(resource?: vscode.Uri): ExcludeConfig {
         const config = vscode.workspace.getConfiguration(this.configSection, resource);
-        // Preferred structured configuration
-        const structured = config.get<{ paths?: string[]; patterns?: string[] }>('exclude');
+        const setting = config.inspect<Partial<ExcludeConfig>>('exclude');
+        const hasStructuredSetting = setting?.globalValue !== undefined ||
+            setting?.workspaceValue !== undefined || setting?.workspaceFolderValue !== undefined;
+        const structured = hasStructuredSetting ? config.get<Partial<ExcludeConfig>>('exclude') : undefined;
         if (structured && (Array.isArray(structured.paths) || Array.isArray(structured.patterns))) {
             return {
                 paths: Array.isArray(structured.paths) ? structured.paths : [],
@@ -38,17 +40,9 @@ export class ConfigurationService {
         // Legacy flat arrays
         const excludePaths = config.get<string[]>('excludePaths');
         const excludePatterns = config.get<string[]>('excludePatterns');
-        if (Array.isArray(excludePaths) || Array.isArray(excludePatterns)) {
-            return {
-                paths: Array.isArray(excludePaths) ? excludePaths : [],
-                patterns: Array.isArray(excludePatterns) ? excludePatterns : ['node_modules', '*.log']
-            };
-        }
-
-        // Default fallback
         return {
-            paths: [],
-            patterns: ['node_modules', '*.log']
+            paths: Array.isArray(excludePaths) ? excludePaths : [],
+            patterns: Array.isArray(excludePatterns) ? excludePatterns : ['node_modules', '*.log']
         };
     }
 
