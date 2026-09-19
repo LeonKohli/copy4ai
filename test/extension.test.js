@@ -659,6 +659,29 @@ suite('Copy4AI Extension Test Suite', () => {
             }
         });
 
+        test('Should root the copied tree at a single selected folder, like Copy Project Structure', async () => {
+            const folderPath = await require('fs/promises').mkdtemp(path.join(__dirname, 'testWorkspace', 'selection-root-'));
+            const selectedFolder = vscode.Uri.joinPath(vscode.Uri.file(folderPath), 'src');
+            try {
+                for (const name of ['src/nested/child.txt', 'src/top.txt']) {
+                    const uri = vscode.Uri.joinPath(vscode.Uri.file(folderPath), name);
+                    await vscode.workspace.fs.createDirectory(vscode.Uri.file(path.dirname(uri.fsPath)));
+                    await vscode.workspace.fs.writeFile(uri, Buffer.from(name));
+                }
+                const expectedTree = 'src/\n├── nested\n│   └── child.txt\n└── top.txt\n';
+
+                await vscode.commands.executeCommand('snapsource.copyToClipboard', selectedFolder);
+                const output = await testClipboard.readText();
+                assert.ok(output.startsWith(`# Project Structure\n\n\`\`\`\n${expectedTree}\`\`\`\n`), output);
+                assert.ok(output.includes(`## ${path.basename(folderPath)}/src/top.txt`), output);
+
+                await vscode.commands.executeCommand('snapsource.copyProjectStructure', selectedFolder);
+                assert.strictEqual(await testClipboard.readText(), OutputFormatter.formatProjectStructureOnly('markdown', expectedTree));
+            } finally {
+                await vscode.workspace.fs.delete(vscode.Uri.file(folderPath), { recursive: true });
+            }
+        });
+
         test('Should copy keyboard-selected files when invoked without URI arguments', async function() {
             this.timeout(10000);
 

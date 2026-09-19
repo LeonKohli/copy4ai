@@ -6,6 +6,8 @@ All notable changes to the "Copy4AI" extension will be documented in this file.
 
 ### Fixed
 
+- When you copy a single folder, the project tree now starts at that folder, the same as in Copy Project Structure.
+- Copy Project Structure on a subfolder applies `.gitignore` rules to the right paths. Before, a rule like `/dist` could hide a folder named `dist` inside the subfolder.
 - `copy4ai.excludePaths` and `copy4ai.excludePatterns` work again when `copy4ai.exclude` is not set in your user or workspace settings.
 
 ## [2.0.0] - 2026-09-15

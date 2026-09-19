@@ -96,18 +96,10 @@ export class Copy4AIService {
                     }
                 }
 
-                let projectRootUri = workspaceFolder.uri;
-                let projectRootName = '';
-
-                // Allow using selected folder as root for more focused project views
-                // Useful when working with large monorepos or when sharing specific subsections
-                if (options.useSelectedFolderAsRoot && itemsToProcess[0]) {
-                    const stats = await vscode.workspace.fs.stat(itemsToProcess[0]);
-                    if (stats.type & vscode.FileType.Directory) {
-                        projectRootUri = itemsToProcess[0];
-                        projectRootName = `${UriUtils.basename(projectRootUri)}/`;
-                    }
-                }
+                // A single selected folder becomes the tree root, like the folder view it came from
+                const selectedFolder = itemsToProcess.length === 1 &&
+                    (await vscode.workspace.fs.stat(itemsToProcess[0])).type & vscode.FileType.Directory
+                    ? itemsToProcess[0] : undefined;
 
                 progress.report({ increment: 15, message: "Generating project tree..." });
                 let projectTree = '';
@@ -131,17 +123,18 @@ export class Copy4AIService {
                     };
 
                     projectTree = await ProjectTreeGenerator.generateProjectTree(
-                        projectRootUri,
+                        selectedFolder ?? workspaceFolder.uri,
                         ig,
                         config.maxDepth,
                         0,
                         '',
                         isExcludedFromTree,
-                        token
+                        token,
+                        workspaceFolder.uri
                     );
 
-                    if (options.useSelectedFolderAsRoot && projectRootName) {
-                        projectTree = projectRootName + '\n' + projectTree;
+                    if (selectedFolder) {
+                        projectTree = `${UriUtils.basename(selectedFolder)}/\n${projectTree}`;
                     }
                 }
 
@@ -438,8 +431,7 @@ export function activate(context: vscode.ExtensionContext): void {
             }
 
             await Copy4AIService.copyToClipboard(targetUri, undefined, {
-                projectTreeOnly: true,
-                useSelectedFolderAsRoot: true
+                projectTreeOnly: true
             });
         }
     );
