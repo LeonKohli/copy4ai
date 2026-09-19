@@ -10,6 +10,9 @@ coverage/**
 eslint.config.*
 vscode-test.config.*
 vsc-extension-quickstart.md
+# README media load from GitHub; only the icon ships
+images/demo.gif
+images/copy-changes.png
 **/jsconfig.json
 **/tsconfig*.json
 **/*.map

@@ -1,0 +1,40 @@
+name: Bug report
+description: Copy4AI copied the wrong thing, failed, or showed an error.
+labels: [bug]
+body:
+  - type: textarea
+    id: steps
+    attributes:
+      label: What did you do?
+      description: Which files or folders did you select, and which command did you run from where?
+      placeholder: Selected the `src` folder in the Explorer and chose Copy to Clipboard (Copy4AI).
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What did you get?
+      description: Paste the relevant part of the copied output or the error message.
+      render: markdown
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: settings
+    attributes:
+      label: Your Copy4AI settings
+      description: Every `copy4ai.*` entry from your user and workspace `settings.json`. Leave it empty if you use the defaults.
+      render: json
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: Copy4AI, editor, and operating system.
+      placeholder: Copy4AI 2.0.0, VS Code 1.104.0, macOS 15
+    validations:
+      required: true

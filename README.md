@@ -1,153 +1,266 @@
 # Copy4AI
 
-![Copy4AI Logo](images/icon.png)
+[![VS Code Marketplace](https://vsmarketplacebadges.dev/version-short/LeonKohli.snapsource.svg)](https://marketplace.visualstudio.com/items?itemName=LeonKohli.snapsource)
+[![Installs](https://vsmarketplacebadges.dev/installs-short/LeonKohli.snapsource.svg)](https://marketplace.visualstudio.com/items?itemName=LeonKohli.snapsource)
+[![Open VSX downloads](https://img.shields.io/open-vsx/dt/LeonKohli/snapsource?label=Open%20VSX%20downloads)](https://open-vsx.org/extension/LeonKohli/snapsource)
+[![License](https://img.shields.io/github/license/LeonKohli/copy4ai)](LICENSE)
 
-Copy4AI (formerly SnapSource) is a Visual Studio Code extension that copies file and folder contents, together with the project tree structure, to your clipboard — built for pasting project context into Large Language Models (LLMs). Dot files and anything matched by your .gitignore stay out of the output, which comes in plaintext, markdown, or XML.
+Right-click files or folders in VS Code and copy their contents, with a project tree, as one block you can paste into ChatGPT, Claude, Gemini, or any other LLM.
 
-## 🚀 Features
+Copy4AI leaves out what the model doesn't need. By default, dot files, `.gitignore` matches, and `node_modules` stay out, and binary files and files over 1 MB appear only as a one-line note. Everything else is copied exactly as it is on disk, comments and whitespace included.
 
-- 📋 Copy contents of files, folders, or multiple selections to your clipboard along with the project tree structure.
-- 🔒 Configurable dot file handling (.env, .git, .github, etc.).
-- 🚫 Respect .gitignore rules and custom exclude patterns.
-- 🌳 Configurable project tree depth.
-- 📄 Three output formats: plaintext, markdown, and XML.
-- ⚡ Asynchronous processing for improved performance with large directories.
-- 🛡️ Robust error handling for various edge cases.
-- 🧠 Smart binary file detection to exclude non-text content.
-- 📏 Configurable file size limit to prevent oversized outputs.
-- 🔧 Option to include or exclude project tree structure in the output.
-- 🔢 Offline token counting and context-window warnings for various LLM models.
+![Right-click the src folder, choose Copy to Clipboard (Copy4AI), and paste the result into an editor](images/demo.gif)
 
-## 🔧 How to Use
+## Install
 
-1. Select one or multiple files or folders in the VS Code Explorer.
-2. Right-click and select one of the following options:
-   - **Copy to Clipboard (Copy4AI)**: Copies the selected files/folders with their content
-   - **Copy Project Structure (Copy4AI)**: Copies only the project tree structure of the selected folder (or entire workspace if no folder is selected)
-3. The content is copied to your clipboard. Dot files and binary files are left out, ignore patterns and size limits apply.
-4. Paste the content into your preferred LLM interface.
+Install [Copy4AI from the VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=LeonKohli.snapsource), or run this in the Quick Open box (<kbd>Ctrl</kbd>+<kbd>P</kbd>, or <kbd>Cmd</kbd>+<kbd>P</kbd> on macOS):
 
-Keyboard shortcuts use the same Explorer or Source Control selection as the context menu, including multi-select.
+```text
+ext install LeonKohli.snapsource
+```
 
-File contents retain their comments, indentation, and whitespace when copied.
+Cursor, Windsurf, VSCodium, and other editors that use Open VSX can install [Copy4AI from Open VSX](https://open-vsx.org/extension/LeonKohli/snapsource).
 
-The included project tree shows the selected files, the contents of selected folders, and their parent directories. Exclusion rules and `copy4ai.maxDepth` still apply.
+Copy4AI was called SnapSource before version 1.0.13. The extension ID is still `LeonKohli.snapsource`.
 
-To hide **Copy Project Structure (Copy4AI)** from Explorer and editor context menus, set `copy4ai.showCopyProjectStructure` to `false`.
+## Copy files for a prompt
 
-**Copy to Clipboard (Copy4AI)** is also available from:
+1. Select one or more files or folders in the Explorer.
+2. Right-click the selection and choose **Copy to Clipboard (Copy4AI)**.
+3. Paste into your chat.
 
-- The **Source Control view**: right-click one or more changed files to copy them — handy when your working set is scattered across the project. Deleted files in the selection are skipped with a notice.
-- The **editor tab**: right-click a tab title to copy that file. (VS Code does not expose multi-selected tabs to extensions, so the entry is hidden while multiple tabs are selected.)
+Copying the `src` folder of a small project gives you this:
 
-**Copy Changes (Copy4AI)** in the Source Control view copies a unified diff against HEAD instead of full file contents — far fewer tokens when you want the AI to see *what changed* rather than the whole file. Untracked files appear as new-file diffs with their full content. Git repositories only; the diff respects your local git config, so it matches what `git diff` prints in your terminal.
+````markdown
+# Project Structure
 
-Additional commands:
-- Use the **Toggle Project Tree (Copy4AI)** command from the Command Palette to quickly enable or disable project tree inclusion in the output without changing settings.
-- Use the **Toggle Dot Files Inclusion (Copy4AI)** command from the Command Palette to quickly switch between including or excluding dot files (like .github) without changing settings.
+```
+src/
+├── utils
+│   └── math.ts
+└── index.ts
+```
 
-A progress indicator will show the status of the operation, especially useful for large files or when token counting is enabled.
+# File Contents
 
-## ⚙️ Extension Settings
+## src/index.ts
 
-This extension contributes the following settings:
+```typescript
+import { add } from './utils/math';
 
-| Setting | Description | Default |
-|---------|-------------|---------|
-| `copy4ai.ignoreGitIgnore` | Respect .gitignore rules when generating the project tree and copying files | `true` |
-| `copy4ai.ignoreDotFiles` | Ignore files and directories that start with a dot (.) when generating the project tree and copying files | `true` |
-| `copy4ai.maxDepth` | Maximum depth of the project tree | `5` |
-| `copy4ai.exclude` | Structured exclusion config with `paths` and `patterns`; preferred over the legacy exclusion keys | `{ "paths": [], "patterns": ["node_modules", "*.log"] }` |
-| `copy4ai.excludePaths` | Array of absolute paths relative to workspace root to exclude (e.g., `["src/config", "vendor/unwanted"]`) | `[]` |
-| `copy4ai.excludePatterns` | Array of glob patterns to exclude (e.g., `["*.tmp", "build/**"]`) | `["node_modules", "*.log"]` |
-| `copy4ai.outputFormat` | Output format for the copied content (options: "plaintext", "markdown", "xml") | `"markdown"` |
-| `copy4ai.maxFileSize` | Maximum file size (in bytes) to include in the output | `1048576` (1MB) |
-| `copy4ai.includeProjectTree` | Include a project tree of the selected files and folders in the output | `true` |
-| `copy4ai.showCopyProjectStructure` | Show Copy Project Structure in Explorer and editor context menus | `true` |
-| `copy4ai.excludeContentPatterns` | Show matching files in the project tree but omit their content | `[]` |
-| `copy4ai.llmModel` | LLM model used for token counting and context-window warnings | `"claude-sonnet-4-6"` |
-| `copy4ai.maxTokens` | Maximum number of tokens allowed before warning | `null` |
-| `copy4ai.enableTokenWarning` | Enable warning when token count exceeds the maximum | `true` |
-| `copy4ai.enableTokenCounting` | Enable offline token counting and context-window warnings | `false` |
+console.log(add(2, 3));
+```
 
-> Dot files are ignored by default; set `copy4ai.ignoreDotFiles` to `false` to include .github and other dot directories. Binary files are detected and excluded.
+## src/utils/math.ts
 
-### Exclusion Configuration
+```typescript
+export const add = (a: number, b: number) => a + b;
+```
+````
 
-The preferred exclusion setting is the structured `copy4ai.exclude` object; legacy keys are still supported.
+File paths are relative to the workspace folder. If a file itself contains Markdown code fences, Copy4AI uses a longer fence around it so the output stays valid Markdown.
+
+Set `copy4ai.outputFormat` to `xml` or `plaintext` if your prompt works better with those formats. Claude, for example, handles XML tags well.
+
+<details>
+<summary>The same copy as XML</summary>
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<copy4ai>
+  <project_structure>
+    src/
+    ├── utils
+    │   └── math.ts
+    └── index.ts
+
+  </project_structure>
+  <file_contents>
+    <file path="src/index.ts">
+      <![CDATA[import { add } from './utils/math';
+
+console.log(add(2, 3));]]>
+    </file>
+    <file path="src/utils/math.ts">
+      <![CDATA[export const add = (a: number, b: number) => a + b;]]>
+    </file>
+  </file_contents>
+</copy4ai>
+```
+
+</details>
+
+<details>
+<summary>The same copy as plain text</summary>
+
+```text
+Project Structure:
+
+src/
+├── utils
+│   └── math.ts
+└── index.ts
+
+
+File Contents:
+
+--- src/index.ts ---
+import { add } from './utils/math';
+
+console.log(add(2, 3));
+
+--- src/utils/math.ts ---
+export const add = (a: number, b: number) => a + b;
+```
+
+</details>
+
+## Commands
+
+| Command | Where to find it | What it copies |
+|---|---|---|
+| **Copy to Clipboard (Copy4AI)** | Explorer, editor, and editor tab context menus | The selected files and folders, with a project tree |
+| **Copy Project Structure (Copy4AI)** | Explorer and editor context menus | Only the tree: the folder you right-clicked, or the whole workspace when you right-click a file |
+| **Copy Source Control File Contents (Copy4AI)** | Source Control view, on changed files | The full contents of the selected changed files |
+| **Copy Changes (Copy4AI)** | Source Control view, on changed files in Git repositories | A unified diff against `HEAD` for the selected files |
+| **Copy4AI: Toggle Project Tree** | Command Palette | Nothing. Switches `copy4ai.includeProjectTree` in your user settings. |
+| **Copy4AI: Toggle Dot Files Inclusion** | Command Palette | Nothing. Switches `copy4ai.ignoreDotFiles` in your user settings. |
+
+Copy4AI has no default keyboard shortcuts. To add one, bind `snapsource.copyToClipboard` in **Keyboard Shortcuts**. The shortcut copies the selection in the focused Explorer or Source Control view, including a multi-selection. If nothing is selected, it copies the file in the active editor.
+
+The editor tab entry is hidden while several tabs are selected, because VS Code does not pass a tab selection to extensions ([microsoft/vscode#213699](https://github.com/microsoft/vscode/issues/213699)). To hide **Copy Project Structure (Copy4AI)** from the context menus, set `copy4ai.showCopyProjectStructure` to `false`.
+
+**Copy Source Control File Contents (Copy4AI)** skips deleted files and shows a warning that names them. If every selected file was deleted, the command fails and your clipboard stays unchanged.
+
+## The project tree
+
+The tree shows only what you copied: the selected files, everything inside the selected folders, and the parent folders that lead to them. Unrelated parts of the workspace stay out.
+
+When you copy a single folder, the tree starts at that folder, as in the example above. When you copy several items or a single file, the tree starts at the workspace folder. **Copy Project Structure (Copy4AI)** shows the complete tree of the folder, not only a selection.
+
+`copy4ai.maxDepth` limits how deep the tree goes. The default is 5 levels. The limit applies only to the tree. Copy4AI still copies the contents of deeper files. To copy file contents without the tree, run **Copy4AI: Toggle Project Tree** or set `copy4ai.includeProjectTree` to `false`.
+
+## What stays out
+
+Copy4AI skips these files completely, in both the tree and the contents:
+
+- Files and folders whose names start with a dot, such as `.env`, `.git`, and `.github`. Set `copy4ai.ignoreDotFiles` to `false` to include them.
+- Paths matched by the `.gitignore` in the workspace root. Nested `.gitignore` files are not read. Set `copy4ai.ignoreGitIgnore` to `false` to include these paths.
+- Paths matched by `copy4ai.exclude`. The default excludes `node_modules` and `*.log`. See [Exclude files](#exclude-files).
+
+Some files appear in the tree but their contents are replaced with a short note:
+
+| File | Replaced with |
+|---|---|
+| Binary file | `[Binary file content not included]` |
+| Larger than `copy4ai.maxFileSize` (1 MB by default) | `[File too large: 2.3 MB > 1.0 MB]` |
+| Matched by `copy4ai.excludeContentPatterns` | `[File content not included]` |
+| Not valid UTF-8, for example UTF-16 | A note that asks you to convert the file to UTF-8 |
+
+One unreadable file never stops the copy. Copy4AI adds a note for that file and copies the rest.
+
+Copy4AI does not scan file contents for secrets. `.env` files stay out because their names start with a dot, but an API key hard-coded in `config.ts` is copied like any other line. Check what you paste, and add files with secrets to `copy4ai.exclude`.
+
+## Your code stays on your machine
+
+Copy4AI makes no network requests and collects no telemetry. It reads your files, writes the result to your clipboard, and counts tokens locally. Nothing goes to a model until you paste it.
+
+## Copy only what changed
+
+In the Source Control view, right-click changed files and choose **Copy Changes (Copy4AI)**. You get a unified diff against `HEAD` instead of full files, which costs far fewer tokens when the question is about the change.
+
+![The diff of one changed file, copied with Copy Changes (Copy4AI) and pasted into an editor](images/copy-changes.png)
+
+Untracked files appear as new-file diffs with their full contents. The diff comes from the built-in Git extension and follows your Git config, so it matches what `git diff` prints in your terminal. The output uses `copy4ai.outputFormat`.
+
+If none of the selected files has changes, the command fails and your clipboard stays unchanged.
+
+## Count tokens before you paste
+
+Set `copy4ai.enableTokenCounting` to `true` to see the token count of every copy. The count runs offline.
+
+Set `copy4ai.llmModel` to the model you paste into, for example `claude-opus-4-7`, `gpt-5.5`, or `gemini-3-pro`. The model name selects the tokenizer:
+
+- OpenAI models (`gpt-*`, `o1`, `o3`, `o4`) get exact counts.
+- Claude models (`claude-*`) use Anthropic's legacy tokenizer. Counts are about 1 to 2 percent off.
+- Other models use a characters-divided-by-4 estimate.
+
+If the count exceeds the model's context window, Copy4AI shows a warning with a **Configure Exclusions** button. Set `copy4ai.maxTokens` to warn at a lower limit, or set `copy4ai.enableTokenWarning` to `false` to turn the warning off.
+
+## Exclude files
+
+Use `copy4ai.exclude` in your user or workspace settings:
 
 ```json
-// Preferred
 "copy4ai.exclude": {
   "paths": ["src/config", "vendor/unwanted-package"],
-  "patterns": ["node_modules", "*.log", "*.tmp", "build/**"]
+  "patterns": ["node_modules", "*.log", "*.tmp", "build/"]
 }
-
-// Legacy
-"copy4ai.excludePaths": ["src/config", "vendor/unwanted-package"],
-"copy4ai.excludePatterns": ["node_modules", "*.log", "*.tmp", "build/**"]
 ```
 
-- **exclude.paths** / **excludePaths**: Exact paths relative to the workspace root.
-- **exclude.patterns** / **excludePatterns**: Glob patterns for broader matches.
+- `paths` excludes exact files or folders, and everything inside those folders. Write the paths relative to the workspace folder. Absolute paths also work for local files.
+- `patterns` uses `.gitignore` syntax. `build/` matches only folders named `build`. `*.tmp` matches files at any depth.
 
-If `copy4ai.exclude` is set, it takes precedence over `copy4ai.excludePaths` and `copy4ai.excludePatterns`.
+VS Code merges your object with the default, so `{}` keeps `node_modules` and `*.log` excluded. To turn off every Copy4AI exclusion, set both lists to `[]`. Dot files and `.gitignore` matches still stay out until you change their own settings.
 
-## 📊 Output Formats
+To keep a file in the tree but drop its contents, add a pattern to `copy4ai.excludeContentPatterns`, for example `["**/*.svg", "assets/**"]`.
 
-1. **Plaintext**: A simple text format with clear sections for project structure (if enabled) and file contents.
-2. **Markdown**: A formatted markdown output with code blocks for project structure (if enabled) and file contents.
-3. **XML**: A structured XML format with separate sections for project structure and file contents.
+Older setups use `copy4ai.excludePaths` and `copy4ai.excludePatterns`. Those two settings still work when `copy4ai.exclude` is not set in your user or workspace settings. When it is set, `copy4ai.exclude` wins.
 
-## 📋 Requirements
+## Settings
 
-- Visual Studio Code version 1.104.0 or higher
+| Setting | Default | Description |
+|---|---|---|
+| `copy4ai.outputFormat` | `"markdown"` | Output format: `markdown`, `xml`, or `plaintext`. |
+| `copy4ai.includeProjectTree` | `true` | Add a project tree above the file contents. |
+| `copy4ai.maxDepth` | `5` | Maximum depth of the project tree. |
+| `copy4ai.showCopyProjectStructure` | `true` | Show **Copy Project Structure (Copy4AI)** in the Explorer and editor context menus. |
+| `copy4ai.ignoreDotFiles` | `true` | Skip files and folders whose names start with a dot. |
+| `copy4ai.ignoreGitIgnore` | `true` | Skip paths matched by the `.gitignore` in the workspace root. |
+| `copy4ai.exclude` | `{ "paths": [], "patterns": ["node_modules", "*.log"] }` | Paths and `.gitignore`-style patterns to skip. |
+| `copy4ai.excludeContentPatterns` | `[]` | Patterns for files that appear in the tree without their contents. |
+| `copy4ai.maxFileSize` | `1048576` | Largest file, in bytes, whose contents are copied. |
+| `copy4ai.enableTokenCounting` | `false` | Count tokens after each copy. |
+| `copy4ai.llmModel` | `"claude-sonnet-4-6"` | Model that selects the tokenizer and the context-window limit. |
+| `copy4ai.maxTokens` | `null` | Token limit for the warning. `null` or `0` uses the model's context window. |
+| `copy4ai.enableTokenWarning` | `true` | Warn when a copy exceeds the token limit. |
+| `copy4ai.excludePaths` | `[]` | Legacy. Use `copy4ai.exclude.paths`. |
+| `copy4ai.excludePatterns` | `["node_modules", "*.log"]` | Legacy. Use `copy4ai.exclude.patterns`. |
 
-## 🐛 Known Issues
+## Remote and untrusted workspaces
 
-Track current reports in [GitHub Issues](https://github.com/LeonKohli/copy4ai/issues).
+Copy4AI reads files through the VS Code file system API, so it works in Remote SSH, WSL, Dev Containers, Codespaces, and other virtual workspaces.
 
-## 📝 Release Notes
+In Restricted Mode, the copy commands still work, but Copy4AI ignores Copy4AI settings from the workspace until you trust it. Your user settings still apply.
 
-See [CHANGELOG.md](CHANGELOG.md).
+## Known limitations
 
-## 🛠️ Development
+- Only the `.gitignore` in the workspace root is read. Rules in nested `.gitignore` files don't apply.
+- One copy can't mix files from different folders of a multi-root workspace.
+- **Copy to Clipboard (Copy4AI)** is not in the context menu of a workspace root folder. Select the files and folders inside it instead, or use **Copy Project Structure (Copy4AI)** for the tree.
+- To read the Explorer selection from a keyboard shortcut, Copy4AI briefly puts the selected file paths on the clipboard, then restores the previous clipboard content. A clipboard manager can record those paths.
+- The editor tab entry is hidden while several tabs are selected. See [Commands](#commands).
 
-This extension is built with TypeScript and uses the VS Code Extension API. The codebase follows modern TypeScript best practices with a modular architecture.
+## Requirements
 
-### Building
+VS Code 1.104 or later.
 
-Development requires Bun and Node.js 22 or newer. Integration tests run in a separate VS Code Extension Development Host.
+## Feedback
+
+Report bugs and ask for features in [GitHub Issues](https://github.com/LeonKohli/copy4ai/issues/new/choose). The [changelog](CHANGELOG.md) lists every release.
+
+## Development
+
+You need [Bun](https://bun.sh) and Node.js 22 or later.
 
 ```bash
-bun run compile    # Compile TypeScript to JavaScript
-bun run watch      # Watch mode for development
-bun run lint       # Run ESLint
-bun run test       # Run tests
+bun install
+bun run compile   # build once, or `bun run watch` while you edit
+bun run test      # compile, lint, and run the tests in a separate VS Code instance
 ```
 
-### Architecture
+Press <kbd>F5</kbd> in VS Code to start an Extension Development Host with your build.
 
-The extension is organized into modular utility classes:
-- `ConfigurationService` - Centralized configuration management
-- `FileProcessor` - File processing and encoding detection
-- `ProjectTreeGenerator` - Project structure generation
-- `OutputFormatter` - Different output formats (markdown, XML, plaintext)
-- `IgnoreUtils` - Handling ignore patterns and exclusions
-- `TokenCounter` - Offline token counting and context-window warnings
+## License
 
-## 💬 Feedback and Contributions
-
-If you have any feedback or would like to contribute to the development of Copy4AI, please visit our [GitHub repository](https://github.com/LeonKohli/copy4ai).
-
----
-
-<div align="center">
-
-**Enjoy using Copy4AI!**
-
-[![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/LeonKohli.snapsource.svg?style=for-the-badge&label=VS%20Code%20Marketplace&logo=visual-studio-code)](https://marketplace.visualstudio.com/items?itemName=LeonKohli.snapsource)
-[![GitHub stars](https://img.shields.io/github/stars/LeonKohli/copy4ai.svg?style=for-the-badge&logo=github)](https://github.com/leonkohli/copy4ai/stargazers)
-[![License](https://img.shields.io/github/license/LeonKohli/copy4ai.svg?style=for-the-badge)](https://github.com/leonkohli/copy4ai/blob/master/LICENSE)
-
-</div>
+[MIT](LICENSE)

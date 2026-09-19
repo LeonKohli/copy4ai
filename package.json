@@ -185,7 +185,7 @@
               "paths": {
                 "type": "array",
                 "items": { "type": "string" },
-                "description": "Absolute paths relative to workspace root to exclude (e.g., 'src/config')",
+                "description": "Paths to exclude, relative to the workspace folder (e.g., 'src/config'). Excludes everything inside a folder.",
                 "default": []
               },
               "patterns": {
@@ -221,7 +221,7 @@
             "items": {
               "type": "string"
             },
-            "description": "Absolute paths relative to workspace root to exclude (e.g., 'src/config')",
+            "description": "Paths to exclude, relative to the workspace folder (e.g., 'src/config'). Excludes everything inside a folder.",
             "scope": "resource"
           },
           "copy4ai.excludePatterns": {

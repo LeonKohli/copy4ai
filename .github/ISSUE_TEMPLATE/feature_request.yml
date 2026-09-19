@@ -1,0 +1,20 @@
+name: Feature request
+description: Suggest something Copy4AI should do.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: Describe the task, not the solution. For example, "I paste the same three folders into every chat."
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: How could Copy4AI help?
+  - type: textarea
+    id: workaround
+    attributes:
+      label: What do you do today?
+      description: Your current workaround, if you have one.

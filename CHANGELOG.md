@@ -1,6 +1,6 @@
-# Change Log
+# Changelog
 
-All notable changes to the "Copy4AI" extension will be documented in this file.
+All notable changes to Copy4AI. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/). `[Unreleased]` collects changes for the next release.
 
 ## [Unreleased]
 
@@ -14,315 +14,269 @@ All notable changes to the "Copy4AI" extension will be documented in this file.
 
 ### Breaking changes
 
-- Remove `copy4ai.removeComments` and `copy4ai.compressCode`. Copied text now retains comments and whitespace. Remove these keys from your settings.
-- Use file exclusions or Copy Changes to reduce the copied context.
+- Remove `copy4ai.removeComments` and `copy4ai.compressCode`. Copied files now keep their comments and whitespace. Delete these keys from your settings. To copy less, use exclusions or Copy Changes.
 
 ### Added
 
-- `copy4ai.showCopyProjectStructure` controls whether Copy Project Structure appears in Explorer and editor context menus. (#27)
+- `copy4ai.showCopyProjectStructure` hides Copy Project Structure from the Explorer and editor context menus. ([#27](https://github.com/LeonKohli/copy4ai/issues/27), reported by [@lonix1](https://github.com/lonix1))
 
 ### Fixed
 
-- The tree included with copied contents now follows the selected files and folders. (#26, #28)
-- Copy file contents without altering Markdown links, comments, strings, or indentation. (#29)
+- The project tree in copied output shows only the selected files and folders, not the whole workspace. ([#26](https://github.com/LeonKohli/copy4ai/issues/26), [#28](https://github.com/LeonKohli/copy4ai/issues/28), reported by [@lonix1](https://github.com/lonix1) and [@abrilohd](https://github.com/abrilohd))
+- Markdown links, comments, strings, and indentation in copied files stay unchanged. ([#29](https://github.com/LeonKohli/copy4ai/issues/29), reported by [@migig](https://github.com/migig))
 
 ### Development
 
-- Update `@vscode/test-electron` to 3.1.0 for current macOS VS Code executables. Node.js 22 or newer is required for development.
-- Isolate Git fixture setup from global and system Git configuration.
+- Update `@vscode/test-electron` to 3.1.0 for current macOS VS Code builds. Development needs Node.js 22 or later.
+- Isolate the Git test fixtures from global and system Git config.
 
 ## [1.5.1] - 2026-06-30
 
 ### Fixed
-- Keyboard shortcuts now copy the full Explorer or Source Control selection instead of falling back to a single active file. (#24)
-- Nested or duplicate selections are deduped before copying file contents or Source Control diffs, so selecting both a folder and one of its children no longer copies the child twice. (#25)
+
+- Keyboard shortcuts copy the whole Explorer or Source Control selection instead of only the active file. ([#24](https://github.com/LeonKohli/copy4ai/issues/24), reported by [@Norlandz](https://github.com/Norlandz))
+- Selecting a folder and a file inside it no longer copies that file twice. The same applies to Copy Changes. ([#25](https://github.com/LeonKohli/copy4ai/issues/25), reported by [@Norlandz](https://github.com/Norlandz))
 
 ## [1.5.0] - 2026-06-11
 
 ### Added
-- **Copy from the Source Control view.** Right-click one or more changed files in the SCM view and pick *Copy to Clipboard (Copy4AI)*. Multi-select is supported; the command receives the selection the same way `git.stage` does. (#23)
-- **Copy from the editor tab.** Right-click a tab title to copy that file. Hidden while multiple tabs are selected, since VS Code does not pass the tab selection to extensions (microsoft/vscode#213699).
-- **Copy Changes (Copy4AI).** New SCM context-menu command that copies a unified diff against HEAD for the selected files instead of their full contents — a fraction of the tokens when the question is "what changed". Untracked files are synthesized as new-file diffs (plain `git diff` omits them); duplicate selections are deduped; output honors `copy4ai.outputFormat` and token counting. Git repositories only (uses the built-in git extension API); diff formatting follows your local git config, matching terminal `git diff` output.
+
+- Copy files from the Source Control view. Right-click one or more changed files and choose Copy to Clipboard (Copy4AI). ([#23](https://github.com/LeonKohli/copy4ai/issues/23), reported by [@Norlandz](https://github.com/Norlandz))
+- Copy a file from its editor tab. Right-click the tab title. The entry is hidden while several tabs are selected, because VS Code does not pass a tab selection to extensions ([microsoft/vscode#213699](https://github.com/microsoft/vscode/issues/213699)).
+- Copy Changes (Copy4AI) in the Source Control view copies a unified diff against `HEAD` instead of full files. Untracked files appear as new-file diffs. The diff follows your Git config and uses `copy4ai.outputFormat`. Git repositories only.
 
 ### Changed
-- CI now runs the test suite on every push and PR, and releases are blocked unless it passes.
-- The test suite no longer writes to the OS clipboard (no more clipboard-manager spam from test runs) and finishes in about a second instead of 25.
+
+- CI runs the test suite on every push and pull request, and a release fails if the suite fails.
+- The test suite no longer writes to the system clipboard and runs in about 1 second instead of 25.
 
 ### Fixed
-- Deleted files no longer abort a copy. Files that exist in the selection but not on disk (e.g. deletions listed in the SCM view) are skipped with a warning; if nothing in the selection exists, the command fails without touching the clipboard.
+
+- Deleted files in a selection are skipped with a warning instead of stopping the copy. If every selected file was deleted, the command fails and leaves the clipboard unchanged.
 
 ## [1.4.0] - 2026-05-14
 
 ### Added
-- **Virtual workspace support.** File access now goes through `vscode.workspace.fs` so Copy4AI works in Codespaces, Remote SSH, and other virtual file systems. Declared via `capabilities.virtualWorkspaces`.
-- **Restricted Mode support.** The extension activates in untrusted workspaces; workspace-defined settings are ignored until trust is granted. Declared via `capabilities.untrustedWorkspaces`.
-- Active-editor fallback: invoking the copy command without a selection now uses the active editor's file.
+
+- Virtual workspace support. Copy4AI reads files through `vscode.workspace.fs`, so it works in Codespaces, Remote SSH, and other virtual file systems.
+- Restricted Mode support. The copy commands work in untrusted workspaces. Workspace settings apply after you trust the workspace.
+- Running the copy command without a selection copies the file in the active editor.
 
 ### Changed
-- **Token counting overhaul.** Replaced the abandoned `llm-cost` dependency (snapshot from July 2024) with model-family-aware tokenization:
-  - OpenAI models (GPT-5 series, GPT-4.1, GPT-4o, o-series) use `gpt-tokenizer`'s `o200k_base` / `cl100k_base` encoders for exact counts.
-  - Claude models use `@anthropic-ai/tokenizer` (~1-2% approximation — the only off-line tokenizer Anthropic ships).
-  - Unknown families fall back to a labeled chars/4 heuristic.
-- `copy4ai.llmModel` is now free-text (was a 5-entry enum frozen on 2024-vintage models). Type any model name. Lookup is prefix-based, so dated suffixes like `claude-opus-4-7-20260416` also resolve.
-- Default model: `claude-sonnet-4-6` (highest developer adoption per May 2026 surveys).
-- Token-count notifications now disclose the tokenization method (`exact` vs `approx — Claude tokenizer` vs `approx — chars/4 heuristic`).
-- Curated model registry covers the current frontier: Claude Opus 4.7/4.6, Sonnet 4.6/4.5, Haiku 4.5; GPT-5.5/5.4/5.3, gpt-5-codex, o3/o4-mini; Gemini 3 Pro/Flash, 2.5 Pro/Flash; Grok 4, DeepSeek V4/R1.
-- `enableTokenCounting` no longer requires network access.
-- Migrated from npm to bun for local development and CI.
+
+- Token counting uses a tokenizer that matches the model family:
+  - OpenAI models use the `o200k_base` or `cl100k_base` encoder from `gpt-tokenizer` and give exact counts.
+  - Claude models use `@anthropic-ai/tokenizer`. Counts are about 1 to 2 percent off.
+  - Other models use a characters-divided-by-4 estimate.
+- `copy4ai.llmModel` accepts any model name instead of 5 fixed values. Names match by prefix, so `claude-opus-4-7-20260416` resolves to `claude-opus-4-7`.
+- The default model is `claude-sonnet-4-6`.
+- The token count notification says whether the count is exact or approximate.
+- Token counting no longer needs network access.
+- Local development and CI use Bun instead of npm.
 
 ### Removed
-- **Cost estimation removed.** Per-token pricing drifts faster than this extension ships; reporting stale dollar figures was worse than reporting none. Token counts and context-window warnings remain.
-- `llm-cost` dependency (single maintainer, last published 2024-07).
-- Hardcoded `MODEL_MAX_TOKENS` table and `SUPPORTED_MODELS` enum from `types.ts`.
-- `cost estimation` keyword from `package.json`.
+
+- Cost estimation. Token prices change faster than the extension ships, and an outdated price is worse than none. Token counts and context-window warnings remain.
+- The `llm-cost` dependency.
 
 ## [1.3.4] - 2026-05-14
 
 ### Fixed
-- Trailing-slash directory patterns in `.gitignore` and `copy4ai.excludePatterns` now correctly exclude the matched directory (e.g. `build/`, `src-tauri/icons/`). Previously the directory itself was recursed into and showed up as an empty entry in the project tree. (#21)
-- Removed duplicate `activationEvents` key in `package.json`.
+
+- `.gitignore` and `copy4ai.excludePatterns` patterns with a trailing slash, such as `build/`, exclude the folder instead of listing it as an empty tree entry. ([#21](https://github.com/LeonKohli/copy4ai/issues/21), reported by [@TarkanV](https://github.com/TarkanV))
+- Remove a duplicate `activationEvents` key from `package.json`.
 
 ## [1.3.3] - 2025-12-20
 
 ### Fixed
-- Updated CI workflow to use @vscode/vsce instead of deprecated vsce
+
+- Package the extension with `@vscode/vsce` instead of the deprecated `vsce`.
 
 ## [1.3.2] - 2025-12-20
 
 ### Fixed
-- Fixed engines.vscode version to match @types/vscode (^1.104.0)
+
+- Match `engines.vscode` to the `@types/vscode` version (`^1.104.0`).
 
 ## [1.3.1] - 2025-12-20
 
 ### Fixed
-- Fixed missing `activationEvents` in package.json causing vsce packaging to fail
+
+- Restore `activationEvents` in `package.json`. Packaging failed without it.
 
 ## [1.3.0] - 2025-12-20
 
 ### Added
-- New `copy4ai.excludeContentPatterns` setting to show files in project tree but exclude their content (fixes #15)
-  - Files matching patterns display `[File content not included]` placeholder
-  - Useful for SVGs, images, or other files you want listed but not included in output
-  - Example: `["**/*.svg", "**/*.png", "assets/**"]`
+
+- `copy4ai.excludeContentPatterns` lists matching files in the tree but replaces their contents with `[File content not included]`. Use it for SVGs, images, and similar files, for example `["**/*.svg", "assets/**"]`. ([#15](https://github.com/LeonKohli/copy4ai/issues/15), reported by [@dobaniashish](https://github.com/dobaniashish))
 
 ### Fixed
-- Fixed markdown code block nesting issue when copying markdown files containing code blocks (fixes #16)
-  - Extension now dynamically uses longer fences when content contains backticks
-  - E.g., content with ` ``` ` is wrapped with ` ```` `, content with ` ```` ` uses ` ````` `
-- Fixed ESLint configuration for ESLint 9 flat config compatibility
+
+- Copying a Markdown file that contains code fences no longer breaks the output. Copy4AI wraps such files in a longer fence. ([#16](https://github.com/LeonKohli/copy4ai/issues/16), reported by [@lolmaus](https://github.com/lolmaus))
+- ESLint 9 works with the flat config.
 
 ## [1.2.0] - 2025-10-04
 
 ### Added
-- Structured exclusion configuration via `copy4ai.exclude` object with `paths` and `patterns`. Takes precedence over legacy `excludePaths` / `excludePatterns`.
+
+- `copy4ai.exclude` groups `paths` and `patterns` in one setting. It takes precedence over `copy4ai.excludePaths` and `copy4ai.excludePatterns`.
 
 ### Changed
-- Project tree generation now uses `fs.readdir({ withFileTypes: true })` to reduce `fs.stat` calls and improve performance on large folders.
-- Ignore checks now evaluate root-relative, POSIX-normalized paths for consistent `node-ignore` behavior across platforms.
-- Removed explicit `activationEvents` from package.json; VS Code automatically activates for contributed commands.
 
-### Docs
-- README updated to document the preferred `copy4ai.exclude` configuration and precedence rules.
+- Building the project tree on large folders is faster, because Copy4AI reads file types from the directory listing instead of checking each file.
+- Ignore checks use workspace-relative paths with forward slashes, so patterns match the same way on every platform.
 
 ## [1.1.2] - 2025-10-04
 
 ### Fixed
-- Fixed explorer context menu not appearing in some VS Code configurations (fixes #10)
-  - Removed overly restrictive `filesExplorerFocus` and `explorerViewletVisible` when clauses
-  - Context menu items now appear reliably when right-clicking in the Explorer sidebar
-- Corrected documentation for exclude settings (fixes #11)
-  - Updated README and CHANGELOG to reflect actual implementation using `excludePaths` and `excludePatterns`
-  - Removed references to non-existent nested `exclude` object
+
+- The Explorer context menu entries appear in every VS Code layout. ([#10](https://github.com/LeonKohli/copy4ai/issues/10), reported by [@kynoptic](https://github.com/kynoptic))
+- The README describes `copy4ai.excludePaths` and `copy4ai.excludePatterns` correctly. ([#11](https://github.com/LeonKohli/copy4ai/issues/11), reported by [@archneon](https://github.com/archneon))
 
 ## [1.1.1] - 2025-06-11
 
 ### Fixed
-- **Performance improvement**: Fixed significant performance regression when processing directories with large ignored folders like `node_modules` (fixes #9)
-  - Added early directory exclusion checks to prevent reading contents of ignored directories
-  - Directories are now checked against ignore patterns before their contents are read
-  - This eliminates the 2-5 second delay users experienced when processing projects with large `node_modules` folders
+
+- Copy4AI checks ignore rules before it reads a folder, so a large ignored folder such as `node_modules` no longer adds a delay of 2 to 5 seconds. ([#9](https://github.com/LeonKohli/copy4ai/issues/9), reported by [@dobaniashish](https://github.com/dobaniashish))
 
 ## [1.1.0] - 2025-05-24
 
 ### Changed
-- **Major refactoring**: Migrated from JavaScript to TypeScript for better type safety and maintainability
-- Restructured codebase into modular architecture with dedicated utility classes:
-  - `ConfigurationService` for centralized configuration management
-  - `FileProcessor` for file processing and encoding detection
-  - `ProjectTreeGenerator` for project structure generation
-  - `OutputFormatter` for different output formats (markdown, XML, plaintext)
-  - `IgnoreUtils` for handling ignore patterns and exclusions
-  - `TokenCounter` for token counting and cost estimation
-- Improved TypeScript configuration with strict type checking
-- Enhanced ESLint configuration for TypeScript support
-- Updated build process to compile TypeScript to JavaScript
-- All tests passing with the new TypeScript architecture
 
-
-### Technical Improvements
-- Better separation of concerns with dedicated service classes
-- Improved error handling and type safety
-- Enhanced code maintainability and extensibility
-- Cleaner API design with well-defined interfaces
-- Optimized dependency structure with proper dev/runtime separation
-- Repository cleanup with removal of legacy and orphaned files
+- Rewrite the extension in TypeScript with strict type checking. Behavior is unchanged.
 
 ## [1.0.21] - 2025-05-24
 
 ### Added
-- Enhanced GitHub Actions workflow to publish to both Visual Studio Marketplace and Open VSX Registry
-- Upgraded to HaaLeo/publish-vscode-extension@v2 for better performance and features
-- Single packaging with reuse pattern for more efficient publishing process
+
+- Releases publish to Open VSX as well as the VS Code Marketplace.
 
 ## [1.0.20] - 2025-05-24
 
 ### Fixed
-- **CRITICAL FIX**: Resolved issue where files with unsupported encodings (UTF-16, UTF-32) would cause the extension to stop processing subsequent files (fixes #8)
-- Improved error handling to ensure all processable files are included even when some files cannot be read
-- Enhanced encoding detection to better identify and handle non-UTF-8 files
-- Added graceful fallback for files that cannot be read due to encoding or permission issues
 
-### Added
-- Better error messages for files with unsupported encodings
-- Comprehensive test coverage for encoding issues and error handling scenarios
+- A UTF-16 or UTF-32 file no longer stops the copy. Copy4AI adds a note for that file and copies the rest. ([#8](https://github.com/LeonKohli/copy4ai/issues/8), reported by [@kanhaiya0999](https://github.com/kanhaiya0999))
 
 ## [1.0.19] - 2025-04-19
 
-### Added
-- Improved "Copy Project Structure" to use the selected folder as root instead of always using the workspace root
-- Now when right-clicking on a specific folder, only that folder's structure will be copied
+### Changed
+
+- Copy Project Structure starts the tree at the folder you right-click instead of the workspace folder. ([#7](https://github.com/LeonKohli/copy4ai/issues/7), reported by [@matznerd](https://github.com/matznerd))
 
 ## [1.0.18] - 2025-03-27
 
 ### Added
-- New setting `copy4ai.ignoreDotFiles` to control whether files and directories starting with a dot (.) are ignored
-- Now you can include .github and other dot directories by setting `copy4ai.ignoreDotFiles` to false
-- New "Toggle Dot Files Inclusion" command accessible from the Command Palette for quick switching
 
-### Fixed
-- Fixed issue where .github/workflows and other dot directories couldn't be copied even when selected (fixes #6)
+- `copy4ai.ignoreDotFiles` controls whether files and folders whose names start with a dot are skipped. Set it to `false` to copy `.github` and similar folders. ([#6](https://github.com/LeonKohli/copy4ai/issues/6), reported by [@Waog](https://github.com/Waog))
+- Copy4AI: Toggle Dot Files Inclusion switches this setting from the Command Palette.
 
-## [1.0.17] - 2025-03-15
+## [1.0.17] - 2025-03-16
 
 ### Added
-- New `copy4ai.excludePaths` setting for absolute path exclusions (relative to workspace root)
-- Support for excluding specific directories by their full path
-- More precise control over what files and directories are excluded
 
-### Changed
-- Enhanced exclusion system with separate `excludePaths` and `excludePatterns` settings
-- Fixed issue with excluding directories with common names in specific locations
+- `copy4ai.excludePaths` excludes specific files and folders by their path in the workspace, so a folder name that appears in several places can be excluded in only one of them. ([#5](https://github.com/LeonKohli/copy4ai/issues/5), reported by [@edxeth](https://github.com/edxeth))
 
 ## [1.0.16] - 2025-03-05
 
 ### Added
-- New "Toggle Project Tree" command accessible from the Command Palette
-- Ability to quickly toggle project tree inclusion in output without going to settings
 
-## [1.0.15] - 2024-02-28
+- Copy4AI: Toggle Project Tree switches `copy4ai.includeProjectTree` from the Command Palette.
+
+## [1.0.15] - 2025-02-28
 
 ### Added
-- New "Copy Project Structure" command in the context menu
-- Progress indicators for all operations with cancellation support
-- Detailed progress messages during file processing and token counting
-- Better handling of empty directories and error cases in project tree
-- Action button to quickly access settings when token limit is exceeded
+
+- Copy Project Structure copies only the project tree. ([#2](https://github.com/LeonKohli/copy4ai/issues/2), reported by [@human890209](https://github.com/human890209))
+- A progress notification with a Cancel button appears while Copy4AI copies files.
+- The token limit warning has a button that opens the exclusion settings.
 
 ### Changed
-- Markdown is now the default output format
-- Refactored and simplified the code structure
-- Improved user experience with better visual feedback during longer operations
-- Enhanced context menu organization with a dedicated group for Copy4AI commands
-- When copying project structure only, the "File Contents" section is now omitted for cleaner output
 
-## [1.0.14] - 2024-03-26
+- Settings moved from `snapsource.*` to `copy4ai.*`. Existing values are not migrated, so set them again under the new names.
+- Markdown is the default output format.
+
+## [1.0.14] - 2025-02-22
 
 ### Changed
-- Updated extension icon for better visibility and branding
 
-## [1.0.13] - 2024-03-26
+- New extension icon.
+
+## [1.0.13] - 2025-02-22
 
 ### Changed
-- Renamed extension from "SnapSource" to "Copy4AI" (same extension, new name)
-- Updated all configuration settings to use new namespace (copy4ai.*)
-- Updated documentation and branding
-- Note: This is the same extension as before, just with a new name. All your existing settings will be migrated automatically.
+
+- SnapSource is now called Copy4AI. The extension ID stays `LeonKohli.snapsource`, so installed copies update in place.
 
 ## [1.0.11] - 2024-11-22
 
 ### Fixed
 
-- Fixed an issue where the `includeProjectTree` setting was not being respected.
-- Resolved a linter error related to the `ignore` package usage.
-
-### Changed
-
-- Removed unnecessary activation event from package.json.
+- `copy4ai.includeProjectTree` is respected. ([#1](https://github.com/LeonKohli/copy4ai/issues/1), reported by [@teneon](https://github.com/teneon))
 
 ## [1.0.9] - 2024-07-26
 
 ### Added
 
-- New XML output format
-- Option to disable token counting and cost estimation
+- XML output format.
+- A setting to turn off token counting.
 
-## [1.0.5] - 2024-07-25
+## 1.0.5 - 2024-07-25
 
 ### Added
 
-- Token counting and cost estimation feature
-- New settings:
-  - `copy4ai.llmModel`: Choose the LLM model for token count and cost estimation
-  - `copy4ai.maxTokens`: Set maximum token limit before warning
-  - `copy4ai.enableTokenWarning`: Enable/disable token count warning
-  - `copy4ai.enableTokenCounting`: Enable/disable token counting and cost estimation
+- Token counting and cost estimation, with the `llmModel`, `maxTokens`, `enableTokenWarning`, and `enableTokenCounting` settings.
+
+## 1.0.4 - 2024-07-23
 
 ### Changed
 
-- Updated output to include token count and estimated cost information
+- `compressCode` removes extra whitespace and empty lines.
 
-## [1.0.4] - 2024-07-23
+## 1.0.3 - 2024-07-23
+
+### Added
+
+- `includeProjectTree` turns off the project tree.
+
+## 1.0.2 - 2024-07-14
+
+### Added
+
+- Binary files are listed without their contents.
+- `maxFileSize` limits the size of copied files.
+
+## 1.0.1 - 2024-07-13
 
 ### Changed
 
-- Implement `compressCode`
-- Implemented a simpler code compression feature that removes extra whitespace and empty lines
-- Updated file processing to use the new compression method
-- Improved comment removal functionality
+- Lower the minimum VS Code version.
 
-## [1.0.3] - 2024-07-23
+## 1.0.0 - 2024-07-13
 
-### Added
+First release. Copy files and folders with a project tree in plain text or Markdown, with `.gitignore` support, custom exclude patterns, a configurable tree depth, and dot files skipped.
 
-- New setting `copy4ai.includeProjectTree` to optionally disable project tree generation
-- Updated output formatting to respect the new setting
-
-## [1.0.2] - 2024-07-14
-
-### Added
-
-- Binary file detection: Binary files are now identified and their content is not included in the output.
-- File size limit: Added a new configuration option `copy4ai.maxFileSize` to limit the size of files included in the output.
-
-### Improved
-
-- Error handling: Enhanced error handling and reporting for various scenarios.
-- Performance: Optimized file and directory processing for better performance with large projects.
-
-### Fixed
-
-- Various minor bugs and edge cases.
-
-## [1.0.1] - 2024-07-13
-
-- Lowered minimum required VS Code version for broader compatibility.
-
-## [1.0.0] - 2024-07-13
-
-- Initial release
-- Features include:
-  - Copy file and folder contents with project tree structure
-  - Plaintext and Markdown output formats
-  - Respect .gitignore and custom exclude patterns
-  - Configurable project tree depth
-  - Automatic dot file ignoring
+[Unreleased]: https://github.com/LeonKohli/copy4ai/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/LeonKohli/copy4ai/compare/v1.5.1...v2.0.0
+[1.5.1]: https://github.com/LeonKohli/copy4ai/compare/v1.5.0...v1.5.1
+[1.5.0]: https://github.com/LeonKohli/copy4ai/compare/v1.4.0...v1.5.0
+[1.4.0]: https://github.com/LeonKohli/copy4ai/compare/v1.3.4...v1.4.0
+[1.3.4]: https://github.com/LeonKohli/copy4ai/compare/v1.3.3...v1.3.4
+[1.3.3]: https://github.com/LeonKohli/copy4ai/compare/v1.3.2...v1.3.3
+[1.3.2]: https://github.com/LeonKohli/copy4ai/compare/v1.3.1...v1.3.2
+[1.3.1]: https://github.com/LeonKohli/copy4ai/compare/v1.3.0...v1.3.1
+[1.3.0]: https://github.com/LeonKohli/copy4ai/compare/v1.2.0...v1.3.0
+[1.2.0]: https://github.com/LeonKohli/copy4ai/compare/v1.1.2...v1.2.0
+[1.1.2]: https://github.com/LeonKohli/copy4ai/compare/v1.1.1...v1.1.2
+[1.1.1]: https://github.com/LeonKohli/copy4ai/compare/v1.1.0...v1.1.1
+[1.1.0]: https://github.com/LeonKohli/copy4ai/compare/v1.0.21...v1.1.0
+[1.0.21]: https://github.com/LeonKohli/copy4ai/compare/v1.0.20...v1.0.21
+[1.0.20]: https://github.com/LeonKohli/copy4ai/compare/v1.0.19...v1.0.20
+[1.0.19]: https://github.com/LeonKohli/copy4ai/compare/v1.0.18...v1.0.19
+[1.0.18]: https://github.com/LeonKohli/copy4ai/compare/v1.0.17...v1.0.18
+[1.0.17]: https://github.com/LeonKohli/copy4ai/compare/v1.0.16...v1.0.17
+[1.0.16]: https://github.com/LeonKohli/copy4ai/compare/v1.0.15...v1.0.16
+[1.0.15]: https://github.com/LeonKohli/copy4ai/compare/v1.0.14...v1.0.15
+[1.0.14]: https://github.com/LeonKohli/copy4ai/compare/v1.0.13...v1.0.14
+[1.0.13]: https://github.com/LeonKohli/copy4ai/compare/v1.0.12...v1.0.13
+[1.0.11]: https://github.com/LeonKohli/copy4ai/compare/v1.0.10...v1.0.11
+[1.0.9]: https://github.com/LeonKohli/copy4ai/compare/v1.0.8...v1.0.9
