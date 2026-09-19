@@ -263,4 +263,4 @@ Press <kbd>F5</kbd> in VS Code to start an Extension Development Host with your 
 
 ## License
 
-[MIT](LICENSE)
+Copyright (C) 2024-2026 Leon Kohli. Copy4AI is licensed under the [GNU General Public License v3.0](LICENSE). Versions up to 2.0.0 were released under the MIT License.

@@ -4,6 +4,10 @@ All notable changes to Copy4AI. The format follows [Keep a Changelog](https://ke
 
 ## [Unreleased]
 
+### Changed
+
+- Copy4AI is now licensed under the GNU General Public License v3.0. Versions up to 2.0.0 remain available under the MIT License.
+
 ### Fixed
 
 - When you copy a single folder, the project tree now starts at that folder, the same as in Copy Project Structure.
