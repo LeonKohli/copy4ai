@@ -6,6 +6,7 @@ All notable changes to Copy4AI. The format follows [Keep a Changelog](https://ke
 
 ### Changed
 
+- Mark `copy4ai.excludePaths` and `copy4ai.excludePatterns` as deprecated. They keep working, and the Settings editor hides them unless you have set them.
 - A finished copy is confirmed in the status bar instead of a notification, so copying no longer interrupts you. Warnings and errors stay notifications. ([#30](https://github.com/LeonKohli/copy4ai/issues/30), reported by [@lonix1](https://github.com/lonix1))
 
 ## [2.0.1] - 2026-09-19

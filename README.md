@@ -211,7 +211,7 @@ VS Code merges your object with the default, so `{}` keeps `node_modules` and `*
 
 To keep a file in the tree but drop its contents, add a pattern to `copy4ai.excludeContentPatterns`, for example `["**/*.svg", "assets/**"]`.
 
-Older setups use `copy4ai.excludePaths` and `copy4ai.excludePatterns`. Those two settings still work when `copy4ai.exclude` is not set in your user or workspace settings. When it is set, `copy4ai.exclude` wins.
+Older setups use `copy4ai.excludePaths` and `copy4ai.excludePatterns`. Both are deprecated and no longer appear in the Settings editor unless you have set them. They still work when `copy4ai.exclude` is not set in your user or workspace settings. When it is set, `copy4ai.exclude` wins.
 
 ## Settings
 
@@ -230,8 +230,8 @@ Older setups use `copy4ai.excludePaths` and `copy4ai.excludePatterns`. Those two
 | `copy4ai.llmModel` | `"claude-sonnet-4-6"` | Model that selects the tokenizer and the context-window limit. |
 | `copy4ai.maxTokens` | `null` | Token limit for the warning. `null` or `0` uses the model's context window. |
 | `copy4ai.enableTokenWarning` | `true` | Warn when a copy exceeds the token limit. |
-| `copy4ai.excludePaths` | `[]` | Legacy. Use `copy4ai.exclude.paths`. |
-| `copy4ai.excludePatterns` | `["node_modules", "*.log"]` | Legacy. Use `copy4ai.exclude.patterns`. |
+| `copy4ai.excludePaths` | `[]` | Deprecated. Use `copy4ai.exclude.paths`. |
+| `copy4ai.excludePatterns` | `["node_modules", "*.log"]` | Deprecated. Use `copy4ai.exclude.patterns`. |
 
 ## Remote and untrusted workspaces
 

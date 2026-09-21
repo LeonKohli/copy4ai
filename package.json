@@ -222,6 +222,8 @@
               "type": "string"
             },
             "description": "Paths to exclude, relative to the workspace folder (e.g., 'src/config'). Excludes everything inside a folder.",
+            "markdownDeprecationMessage": "**Deprecated**: Use `#copy4ai.exclude#` and its `paths` list instead.",
+            "deprecationMessage": "Deprecated: Use copy4ai.exclude and its paths list instead.",
             "scope": "resource"
           },
           "copy4ai.excludePatterns": {
@@ -234,6 +236,8 @@
               "type": "string"
             },
             "description": "Glob patterns to exclude (e.g., '*.tmp', 'build/**')",
+            "markdownDeprecationMessage": "**Deprecated**: Use `#copy4ai.exclude#` and its `patterns` list instead.",
+            "deprecationMessage": "Deprecated: Use copy4ai.exclude and its patterns list instead.",
             "scope": "resource"
           },
           "copy4ai.outputFormat": {
