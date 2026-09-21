@@ -161,6 +161,12 @@ One unreadable file never stops the copy. Copy4AI adds a note for that file and 
 
 Copy4AI does not scan file contents for secrets. `.env` files stay out because their names start with a dot, but an API key hard-coded in `config.ts` is copied like any other line. Check what you paste, and add files with secrets to `copy4ai.exclude`.
 
+## Quiet by default
+
+A finished copy is confirmed in the status bar for a few seconds, the same way VS Code reports background work. Copying is not a decision you have to make, so it does not interrupt you with a notification.
+
+Warnings and errors still appear as notifications: skipped files, a failed copy, and the token limit warning with its **Configure Exclusions** button. To silence those too, open the gear menu on any Copy4AI notification and choose **Turn Off Info and Warning Notifications**. VS Code keeps sending errors.
+
 ## Your code stays on your machine
 
 Copy4AI makes no network requests and collects no telemetry. It reads your files, writes the result to your clipboard, and counts tokens locally. Nothing goes to a model until you paste it.
@@ -177,7 +183,7 @@ If none of the selected files has changes, the command fails and your clipboard 
 
 ## Count tokens before you paste
 
-Set `copy4ai.enableTokenCounting` to `true` to see the token count of every copy. The count runs offline.
+Set `copy4ai.enableTokenCounting` to `true` to see the token count of every copy in the status bar. The count runs offline.
 
 Set `copy4ai.llmModel` to the model you paste into, for example `claude-opus-4-7`, `gpt-5.5`, or `gemini-3-pro`. The model name selects the tokenizer:
 

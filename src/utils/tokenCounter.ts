@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { CopyFeedbackReporter } from './feedback';
 import { countTokens as countTokensO200k } from 'gpt-tokenizer/cjs/encoding/o200k_base';
 import { countTokens as countTokensCl100k } from 'gpt-tokenizer/cjs/encoding/cl100k_base';
 import { countTokens as countTokensAnthropic } from '@anthropic-ai/tokenizer';
@@ -74,7 +75,7 @@ const METHOD_LABEL: Record<TokenCountMethod, string> = {
 
 function buildMessage(info: TokenInfo, format: string): string {
     const approxMark = info.approximate ? '~' : '';
-    return `Copied to clipboard: ${format} format, ${approxMark}${info.inputTokens.toLocaleString()} tokens (${METHOD_LABEL[info.method]})`;
+    return `Copied to clipboard, ${approxMark}${info.inputTokens.toLocaleString()} tokens (${format})`;
 }
 
 export class TokenCounter {
@@ -101,10 +102,10 @@ export class TokenCounter {
     ): Promise<void> {
         try {
             const info = this.countTokens(content, model);
-            let message = buildMessage(info, format);
+            const message = buildMessage(info, format);
 
             if (!enableWarning) {
-                vscode.window.showInformationMessage(message);
+                CopyFeedbackReporter.report(message);
                 return;
             }
 
@@ -115,9 +116,9 @@ export class TokenCounter {
                 : (info.maxInputTokens ?? 0);
 
             if (tokenLimit > 0 && info.inputTokens > tokenLimit) {
-                message += `\nWARNING: Token count (${info.inputTokens.toLocaleString()}) exceeds the limit (${tokenLimit.toLocaleString()}).`;
+                const warning = `${message} (${METHOD_LABEL[info.method]})\nWARNING: Token count (${info.inputTokens.toLocaleString()}) exceeds the limit (${tokenLimit.toLocaleString()}).`;
                 const selection = await vscode.window.showWarningMessage(
-                    message,
+                    warning,
                     'OK',
                     'Configure Exclusions'
                 );
@@ -128,13 +129,13 @@ export class TokenCounter {
                     );
                 }
             } else {
-                vscode.window.showInformationMessage(message);
+                CopyFeedbackReporter.report(message);
             }
         } catch (error) {
             console.error('Error in token counting:', error);
             // Don't let token counting failures hide the fact that the copy
             // itself succeeded. That's the core feature.
-            vscode.window.showInformationMessage(`Copied to clipboard: ${format} format`);
+            CopyFeedbackReporter.report(`Copied to clipboard (${format})`);
         }
     }
 

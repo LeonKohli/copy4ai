@@ -1063,6 +1063,40 @@ suite('Copy4AI Extension Test Suite', () => {
         });
     });
 
+    suite('Copy Feedback', () => {
+        test('Should confirm a finished copy in the status bar, not as a notification', async () => {
+            const folderPath = await require('fs/promises').mkdtemp(path.join(__dirname, 'testWorkspace', 'feedback-'));
+            const folder = vscode.Uri.file(folderPath);
+            const file = vscode.Uri.joinPath(folder, 'note.txt');
+            const originalStatusBar = vscode.window.setStatusBarMessage;
+            const originalNotification = vscode.window.showInformationMessage;
+            const statusBar = [];
+            const notifications = [];
+            vscode.window.setStatusBarMessage = (text) => {
+                statusBar.push(text);
+                return { dispose() {} };
+            };
+            vscode.window.showInformationMessage = (text) => {
+                notifications.push(text);
+                return Promise.resolve(undefined);
+            };
+
+            try {
+                await vscode.workspace.fs.writeFile(file, Buffer.from('note'));
+                await vscode.commands.executeCommand('snapsource.copyToClipboard', file);
+
+                assert.ok((await testClipboard.readText()).includes('note'), 'file is copied');
+                assert.deepStrictEqual(notifications, [], 'copying posts no notification');
+                assert.strictEqual(statusBar.length, 1, `status bar got ${JSON.stringify(statusBar)}`);
+                assert.match(statusBar[0], /Copied to clipboard \(markdown\)/);
+            } finally {
+                vscode.window.setStatusBarMessage = originalStatusBar;
+                vscode.window.showInformationMessage = originalNotification;
+                await vscode.workspace.fs.delete(folder, { recursive: true });
+            }
+        });
+    });
+
     suite('SCM Diff Copy', () => {
         const cp = require('child_process');
         const testWorkspacePath = path.join(__dirname, 'testWorkspace');

@@ -4,6 +4,7 @@ import { Copy4AIOptions, FileContent, ProcessFileOptions, ProgressReporter, Canc
 import { ConfigurationService } from './utils/configuration';
 import { FileProcessor } from './utils/fileProcessor';
 import { ProjectTreeGenerator } from './utils/projectTree';
+import { CopyFeedbackReporter } from './utils/feedback';
 import { OutputFormatter } from './utils/formatters';
 import { IgnoreUtils } from './utils/ignoreUtils';
 import { TokenCounter } from './utils/tokenCounter';
@@ -213,7 +214,7 @@ export class Copy4AIService {
                         config.maxTokens
                     );
                 } else {
-                    vscode.window.showInformationMessage(`Copied to clipboard: ${config.outputFormat} format`);
+                    CopyFeedbackReporter.report(`Copied to clipboard (${config.outputFormat})`);
                 }
 
                 if (skippedMissingFiles.length > 0) {
@@ -258,7 +259,7 @@ export class Copy4AIService {
                     config.maxTokens
                 );
             } else {
-                vscode.window.showInformationMessage(`Copied changes to clipboard: ${config.outputFormat} format`);
+                CopyFeedbackReporter.report(`Copied changes to clipboard (${config.outputFormat})`);
             }
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -499,5 +500,6 @@ export { FileProcessor } from './utils/fileProcessor';
 export { IgnoreUtils } from './utils/ignoreUtils';
 export { ConfigurationService } from './utils/configuration';
 export { ProjectTreeGenerator } from './utils/projectTree';
+export { CopyFeedbackReporter } from './utils/feedback';
 export { TokenCounter } from './utils/tokenCounter';
 export { UriUtils } from './utils/uriUtils';

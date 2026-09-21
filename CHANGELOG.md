@@ -2,6 +2,12 @@
 
 All notable changes to Copy4AI. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- A finished copy is confirmed in the status bar instead of a notification, so copying no longer interrupts you. Warnings and errors stay notifications. ([#30](https://github.com/LeonKohli/copy4ai/issues/30), reported by [@lonix1](https://github.com/lonix1))
+
 ## [2.0.1] - 2026-09-19
 
 ### Changed
