@@ -2,7 +2,7 @@
 
 All notable changes to Copy4AI. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [2.1.1] - 2026-09-21
 
 ### Fixed
 
@@ -281,7 +281,8 @@ All notable changes to Copy4AI. The format follows [Keep a Changelog](https://ke
 
 First release. Copy files and folders with a project tree in plain text or Markdown, with `.gitignore` support, custom exclude patterns, a configurable tree depth, and dot files skipped.
 
-[Unreleased]: https://github.com/LeonKohli/copy4ai/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/LeonKohli/copy4ai/compare/v2.1.1...HEAD
+[2.1.1]: https://github.com/LeonKohli/copy4ai/compare/v2.1.0...v2.1.1
 [2.1.0]: https://github.com/LeonKohli/copy4ai/compare/v2.0.1...v2.1.0
 [2.0.1]: https://github.com/LeonKohli/copy4ai/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/LeonKohli/copy4ai/compare/v1.5.1...v2.0.0
