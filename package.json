@@ -281,7 +281,7 @@
         "properties": {
           "copy4ai.llmModel": {
             "type": "string",
-            "default": "claude-sonnet-4-6",
+            "default": "claude-sonnet-5",
             "examples": [
               "claude-opus-4-7",
               "claude-opus-4-6",
@@ -302,20 +302,22 @@
               "deepseek-v4",
               "deepseek-r1"
             ],
-            "markdownDescription": "Model name used to choose the tokenizer and look up the context-window warning threshold. Free-text: type any model name (e.g. `claude-opus-4-7`, `gpt-5.5`, `gemini-3-pro`). Lookup is prefix-based, so dated suffixes like `claude-opus-4-7-20260416` also resolve. Exact token counting is supported for OpenAI (`gpt-*`, `o1`/`o3`/`o4`) and Claude (`claude-*`, via the legacy Anthropic tokenizer, ~1-2% approximation). Other families fall back to a chars/4 heuristic."
+            "markdownDescription": "Model you paste into. The name selects the tokenizer: exact counts for OpenAI (`gpt-*`, `o1`/`o3`/`o4`), the legacy Anthropic tokenizer for Claude (`claude-*`, about 1-2% off), and a chars/4 estimate for everything else. Dated names such as `claude-opus-5-20260416` work."
           },
           "copy4ai.maxTokens": {
             "type": [
               "number",
               "null"
             ],
-            "default": null,
-            "markdownDescription": "Token count that triggers the warning. When unset or `0`, the context window of `#copy4ai.llmModel#` is used. Turn the warning off with `#copy4ai.enableTokenWarning#`."
+            "default": 100000,
+            "markdownDescription": "Token count that triggers the warning. The default of 100000 follows long-context evaluations: model answers degrade well before the context window is full. Set `null` or `0` to turn the warning off."
           },
           "copy4ai.enableTokenWarning": {
             "type": "boolean",
             "default": true,
-            "description": "Enable warning when token count exceeds the maximum"
+            "description": "Enable warning when token count exceeds the maximum",
+            "markdownDeprecationMessage": "**Deprecated**: Set `#copy4ai.maxTokens#` to `0` to turn the warning off.",
+            "deprecationMessage": "Deprecated: Set copy4ai.maxTokens to 0 to turn the warning off."
           },
           "copy4ai.enableTokenCounting": {
             "type": "boolean",

@@ -185,13 +185,13 @@ If none of the selected files has changes, the command fails and your clipboard 
 
 Set `copy4ai.enableTokenCounting` to `true` to see the token count of every copy in the status bar. The count runs offline.
 
-Set `copy4ai.llmModel` to the model you paste into, for example `claude-opus-4-7`, `gpt-5.5`, or `gemini-3-pro`. The model name selects the tokenizer:
+Set `copy4ai.llmModel` to the model you paste into, for example `claude-opus-5`, `gpt-5.5`, or `gemini-3-pro`. The name selects the tokenizer, and dated names such as `claude-opus-5-20260416` work:
 
 - OpenAI models (`gpt-*`, `o1`, `o3`, `o4`) get exact counts.
 - Claude models (`claude-*`) use Anthropic's legacy tokenizer. Counts are about 1 to 2 percent off.
 - Other models use a characters-divided-by-4 estimate.
 
-If the count exceeds the model's context window, Copy4AI shows a warning with a **Configure Exclusions** button. Set `copy4ai.maxTokens` to warn at a lower limit, or set `copy4ai.enableTokenWarning` to `false` to turn the warning off.
+Above `copy4ai.maxTokens`, Copy4AI shows a warning with a **Configure Exclusions** button. The default is 100,000 tokens, far below the context window of current models. Long-context evaluations show answers degrading well before the window is full, so the window is the wrong place to warn. Set the value that fits your budget, or `0` to turn the warning off.
 
 ## Exclude files
 
@@ -227,9 +227,9 @@ Older setups use `copy4ai.excludePaths` and `copy4ai.excludePatterns`. Both are 
 | `copy4ai.excludeContentPatterns` | `[]` | Patterns for files that appear in the tree without their contents. |
 | `copy4ai.maxFileSize` | `1048576` | Largest file, in bytes, whose contents are copied. |
 | `copy4ai.enableTokenCounting` | `false` | Count tokens after each copy. |
-| `copy4ai.llmModel` | `"claude-sonnet-4-6"` | Model that selects the tokenizer and the context-window limit. |
-| `copy4ai.maxTokens` | `null` | Token limit for the warning. `null` or `0` uses the model's context window. |
-| `copy4ai.enableTokenWarning` | `true` | Warn when a copy exceeds the token limit. |
+| `copy4ai.llmModel` | `"claude-sonnet-5"` | Model that selects the tokenizer. |
+| `copy4ai.maxTokens` | `100000` | Token count that triggers the warning. `0` turns it off. |
+| `copy4ai.enableTokenWarning` | `true` | Deprecated. Set `copy4ai.maxTokens` to `0`. |
 | `copy4ai.excludePaths` | `[]` | Deprecated. Use `copy4ai.exclude.paths`. |
 | `copy4ai.excludePatterns` | `["node_modules", "*.log"]` | Deprecated. Use `copy4ai.exclude.patterns`. |
 

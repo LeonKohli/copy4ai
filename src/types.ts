@@ -38,7 +38,6 @@ export interface TokenInfo {
     readonly inputTokens: number;
     readonly method: TokenCountMethod;
     readonly approximate: boolean;
-    readonly maxInputTokens: number | null;
 }
 
 export interface Copy4AIConfiguration {

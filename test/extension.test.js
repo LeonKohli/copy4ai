@@ -394,9 +394,8 @@ suite('Copy4AI Extension Test Suite', () => {
             assert.strictEqual(openAiInfo.method, 'openai-o200k');
             assert.strictEqual(openAiInfo.approximate, false);
             assert.ok(openAiInfo.inputTokens > 0, 'OpenAI token count should be positive');
-            assert.ok(openAiInfo.maxInputTokens > 0, 'Known OpenAI model should have context limit');
 
-            const claudeInfo = TokenCounter.countTokens('hello world', 'claude-sonnet-4-6');
+            const claudeInfo = TokenCounter.countTokens('hello world', 'claude-sonnet-5');
             assert.strictEqual(claudeInfo.method, 'anthropic-legacy');
             assert.strictEqual(claudeInfo.approximate, true);
             assert.ok(claudeInfo.inputTokens > 0, 'Claude token count should be positive');
@@ -404,17 +403,41 @@ suite('Copy4AI Extension Test Suite', () => {
             const unknownInfo = TokenCounter.countTokens('hello world', 'new-provider-model');
             assert.strictEqual(unknownInfo.method, 'chars-heuristic');
             assert.strictEqual(unknownInfo.approximate, true);
-            assert.strictEqual(unknownInfo.maxInputTokens, null);
         });
 
-        test('Should resolve dated/suffixed model names via prefix lookup', () => {
-            const datedOpus = TokenCounter.countTokens('hi', 'claude-opus-4-7-20260416');
-            assert.strictEqual(datedOpus.method, 'anthropic-legacy');
-            assert.strictEqual(datedOpus.maxInputTokens, 1000000, 'Dated Opus 4.7 should resolve to 1M context');
+        test('Should select the tokenizer for dated and suffixed model names', () => {
+            assert.strictEqual(TokenCounter.countTokens('hi', 'claude-opus-5-20260416').method, 'anthropic-legacy');
+            assert.strictEqual(TokenCounter.countTokens('hi', 'gpt-5-codex-2026-01-01').method, 'openai-o200k');
+            assert.strictEqual(TokenCounter.countTokens('hi', 'o3-mini').method, 'openai-o200k');
+        });
 
-            const codexVariant = TokenCounter.countTokens('hi', 'gpt-5-codex-2026-01-01');
-            assert.strictEqual(codexVariant.method, 'openai-o200k');
-            assert.strictEqual(codexVariant.maxInputTokens, 400000);
+        test('Should warn above copy4ai.maxTokens and stay quiet when it is off', async () => {
+            const originalWarning = vscode.window.showWarningMessage;
+            const originalStatusBar = vscode.window.setStatusBarMessage;
+            const warnings = [];
+            const statusBar = [];
+            vscode.window.showWarningMessage = (text) => {
+                warnings.push(text);
+                return Promise.resolve(undefined);
+            };
+            vscode.window.setStatusBarMessage = (text) => {
+                statusBar.push(text);
+                return { dispose() {} };
+            };
+
+            try {
+                const content = 'word '.repeat(200);
+                for (const [maxTokens, expectWarning] of [[50, true], [null, false], [0, false]]) {
+                    warnings.length = 0;
+                    statusBar.length = 0;
+                    await TokenCounter.showTokenInfo(content, 'claude-sonnet-5', 'markdown', true, maxTokens);
+                    assert.strictEqual(warnings.length, expectWarning ? 1 : 0, `maxTokens ${maxTokens}: warnings ${JSON.stringify(warnings)}`);
+                    assert.strictEqual(statusBar.length, expectWarning ? 0 : 1, `maxTokens ${maxTokens}: status bar ${JSON.stringify(statusBar)}`);
+                }
+            } finally {
+                vscode.window.showWarningMessage = originalWarning;
+                vscode.window.setStatusBarMessage = originalStatusBar;
+            }
         });
     });
 

@@ -5,7 +5,17 @@ import { countTokens as countTokensCl100k } from 'gpt-tokenizer/cjs/encoding/cl1
 import { countTokens as countTokensAnthropic } from '@anthropic-ai/tokenizer';
 
 import { TokenInfo, TokenCountMethod } from '../types';
-import { detectFamily, resolveModel } from './modelRegistry';
+
+type ModelFamily = 'anthropic' | 'openai' | 'unknown';
+
+// Model names carry their family as a prefix, including dated variants such as
+// claude-opus-5-20260416. Anything unknown falls back to the chars/4 estimate.
+function detectFamily(model: string): ModelFamily {
+    const m = model.trim().toLowerCase();
+    if (m.startsWith('claude')) { return 'anthropic'; }
+    if (m.startsWith('gpt-') || m.startsWith('chatgpt') || /^o[134]/.test(m)) { return 'openai'; }
+    return 'unknown';
+}
 
 interface TokenizerSelection {
     readonly count: (text: string) => number;
@@ -83,13 +93,10 @@ export class TokenCounter {
     public static countTokens(content: string, model: string): TokenInfo {
         const tokenizer = selectTokenizer(model);
         const inputTokens = tokenizer.count(content);
-        const info = resolveModel(model);
-
         return {
             inputTokens,
             method: tokenizer.method,
-            approximate: tokenizer.approximate,
-            maxInputTokens: info ? info.maxInputTokens : null
+            approximate: tokenizer.approximate
         };
     }
 
@@ -109,11 +116,7 @@ export class TokenCounter {
                 return;
             }
 
-            // Use the user's limit when set, otherwise the model's context
-            // window. Turning the warning off is enableTokenWarning's job.
-            const tokenLimit = maxTokens !== null && maxTokens > 0
-                ? maxTokens
-                : (info.maxInputTokens ?? 0);
+            const tokenLimit = maxTokens ?? 0;
 
             if (tokenLimit > 0 && info.inputTokens > tokenLimit) {
                 const warning = `${message} (${METHOD_LABEL[info.method]})\nWARNING: Token count (${info.inputTokens.toLocaleString()}) exceeds the limit (${tokenLimit.toLocaleString()}).`;
@@ -137,10 +140,5 @@ export class TokenCounter {
             // itself succeeded. That's the core feature.
             CopyFeedbackReporter.report(`Copied to clipboard (${format})`);
         }
-    }
-
-    public static getModelMaxTokens(model: string): number {
-        const info = resolveModel(model);
-        return info ? info.maxInputTokens : 0;
     }
 }
