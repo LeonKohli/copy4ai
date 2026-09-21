@@ -163,7 +163,7 @@ Copy4AI does not scan file contents for secrets. `.env` files stay out because t
 
 ## Quiet by default
 
-A finished copy is confirmed in the status bar for a few seconds, the same way VS Code reports background work. Copying is not a decision you have to make, so it does not interrupt you with a notification.
+While Copy4AI collects your files, a spinner sits in the status bar. When it finishes, a check and a short line replace it for a few seconds. Copying is not a decision you have to make, so it does not interrupt you with a notification.
 
 Warnings and errors still appear as notifications: skipped files, a failed copy, and the token limit warning with its **Configure Exclusions** button. To silence those too, open the gear menu on any Copy4AI notification and choose **Turn Off Info and Warning Notifications**. VS Code keeps sending errors.
 

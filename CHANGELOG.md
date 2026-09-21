@@ -2,6 +2,12 @@
 
 All notable changes to Copy4AI. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+
+- The progress popup with its Cancel button no longer appears on every copy. Progress now sits in the status bar as a spinner, which a check replaces when the copy finishes. Copying 2,000 files takes about a second, so there was nothing worth cancelling. ([#30](https://github.com/LeonKohli/copy4ai/issues/30), reported by [@lonix1](https://github.com/lonix1))
+
 ## [2.1.0] - 2026-09-21
 
 ### Changed

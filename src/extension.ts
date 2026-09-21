@@ -27,10 +27,11 @@ export class Copy4AIService {
         uris?: ReadonlyArray<vscode.Uri>,
         options: Readonly<Copy4AIOptions> = {}
     ): Promise<void> {
+        // Copying a few thousand files takes about a second, so progress is
+        // background noise: it belongs in the status bar, not in a notification.
         return vscode.window.withProgress({
-            location: vscode.ProgressLocation.Notification,
-            title: "Copy4AI: Processing files...",
-            cancellable: true
+            location: vscode.ProgressLocation.Window,
+            title: "Copy4AI"
         }, async (progress: ProgressReporter, token: CancellationToken) => {
             try {
                 progress.report({ increment: 0, message: "Initializing..." });

@@ -9,6 +9,6 @@ export class CopyFeedbackReporter {
      * the user, and VS Code asks extensions to keep those out of notifications.
      */
     public static report(message: string): void {
-        vscode.window.setStatusBarMessage(`$(clippy) ${message}`, STATUS_BAR_TIMEOUT);
+        vscode.window.setStatusBarMessage(`$(check) ${message}`, STATUS_BAR_TIMEOUT);
     }
 }

@@ -1093,8 +1093,14 @@ suite('Copy4AI Extension Test Suite', () => {
             const file = vscode.Uri.joinPath(folder, 'note.txt');
             const originalStatusBar = vscode.window.setStatusBarMessage;
             const originalNotification = vscode.window.showInformationMessage;
+            const originalProgress = vscode.window.withProgress;
             const statusBar = [];
             const notifications = [];
+            const progressLocations = [];
+            vscode.window.withProgress = (options, task) => {
+                progressLocations.push(options.location);
+                return originalProgress.call(vscode.window, options, task);
+            };
             vscode.window.setStatusBarMessage = (text) => {
                 statusBar.push(text);
                 return { dispose() {} };
@@ -1112,9 +1118,11 @@ suite('Copy4AI Extension Test Suite', () => {
                 assert.deepStrictEqual(notifications, [], 'copying posts no notification');
                 assert.strictEqual(statusBar.length, 1, `status bar got ${JSON.stringify(statusBar)}`);
                 assert.match(statusBar[0], /Copied to clipboard \(markdown\)/);
+                assert.deepStrictEqual(progressLocations, [vscode.ProgressLocation.Window], 'progress belongs in the status bar');
             } finally {
                 vscode.window.setStatusBarMessage = originalStatusBar;
                 vscode.window.showInformationMessage = originalNotification;
+                vscode.window.withProgress = originalProgress;
                 await vscode.workspace.fs.delete(folder, { recursive: true });
             }
         });
