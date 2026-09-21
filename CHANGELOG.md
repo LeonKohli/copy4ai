@@ -6,6 +6,7 @@ All notable changes to Copy4AI. The format follows [Keep a Changelog](https://ke
 
 ### Changed
 
+- `copy4ai.maxTokens` says what it does: it sets the threshold, and `0` means the model's context window. Turning the warning off has always been `copy4ai.enableTokenWarning`.
 - Mark `copy4ai.excludePaths` and `copy4ai.excludePatterns` as deprecated. They keep working, and the Settings editor hides them unless you have set them.
 - A finished copy is confirmed in the status bar instead of a notification, so copying no longer interrupts you. Warnings and errors stay notifications. ([#30](https://github.com/LeonKohli/copy4ai/issues/30), reported by [@lonix1](https://github.com/lonix1))
 

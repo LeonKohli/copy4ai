@@ -310,7 +310,7 @@
               "null"
             ],
             "default": null,
-            "description": "Maximum number of tokens allowed before warning. Set to 0 or null to disable warning. If not set, the model's registered context window is used."
+            "markdownDescription": "Token count that triggers the warning. When unset or `0`, the context window of `#copy4ai.llmModel#` is used. Turn the warning off with `#copy4ai.enableTokenWarning#`."
           },
           "copy4ai.enableTokenWarning": {
             "type": "boolean",

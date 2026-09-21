@@ -109,8 +109,8 @@ export class TokenCounter {
                 return;
             }
 
-            // Use user's explicit limit when set, otherwise fall back to the
-            // model's registered context window. Zero means "disabled".
+            // Use the user's limit when set, otherwise the model's context
+            // window. Turning the warning off is enableTokenWarning's job.
             const tokenLimit = maxTokens !== null && maxTokens > 0
                 ? maxTokens
                 : (info.maxInputTokens ?? 0);
