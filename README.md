@@ -123,6 +123,7 @@ export const add = (a: number, b: number) => a + b;
 | **Copy Project Structure (Copy4AI)** | Explorer and editor context menus | Only the tree: the folder you right-clicked, or the whole workspace when you right-click a file |
 | **Copy Source Control File Contents (Copy4AI)** | Source Control view, on changed files | The full contents of the selected changed files |
 | **Copy Changes (Copy4AI)** | Source Control view, on changed files in Git repositories | A unified diff against `HEAD` for the selected files |
+| **Copy4AI: Repeat Last Copy** | Command Palette | The files and folders from your last copy, read fresh from disk |
 | **Copy4AI: Toggle Project Tree** | Command Palette | Nothing. Switches `copy4ai.includeProjectTree` in your user settings. |
 | **Copy4AI: Toggle Dot Files Inclusion** | Command Palette | Nothing. Switches `copy4ai.ignoreDotFiles` in your user settings. |
 
@@ -131,6 +132,8 @@ Copy4AI has no default keyboard shortcuts. To add one, bind `snapsource.copyToCl
 The editor tab entry is hidden while several tabs are selected, because VS Code does not pass a tab selection to extensions ([microsoft/vscode#213699](https://github.com/microsoft/vscode/issues/213699)). To hide **Copy Project Structure (Copy4AI)** from the context menus, set `copy4ai.showCopyProjectStructure` to `false`.
 
 **Copy Source Control File Contents (Copy4AI)** skips deleted files and shows a warning that names them. If every selected file was deleted, the command fails and your clipboard stays unchanged.
+
+**Copy4AI: Repeat Last Copy** copies the previous selection again, so you can edit your code and copy the same set without picking the files a second time. Nothing is cached: folders are read again, exclusion rules are applied again, and files deleted in the meantime are skipped with a warning. The command appears once you have copied something in the current window, and Copy4AI forgets the selection when the window reloads. To bind it, use `snapsource.repeatLastCopy`.
 
 ## The project tree
 

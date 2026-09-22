@@ -2,6 +2,12 @@
 
 All notable changes to Copy4AI. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- **Copy4AI: Repeat Last Copy** in the Command Palette copies the previous selection again, without picking the files a second time. The files are read fresh, so the copy reflects your latest edits. The selection lives in the current window and is gone after a reload. ([#31](https://github.com/LeonKohli/copy4ai/issues/31), requested by [@migig](https://github.com/migig))
+
 ## [2.1.1] - 2026-09-21
 
 ### Fixed

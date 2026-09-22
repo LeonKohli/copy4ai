@@ -879,8 +879,59 @@ suite('Copy4AI Extension Test Suite', () => {
                 'Should include active editor file content'
             );
         });
+
+        test('Should repeat the last copy without a selection (#31)', async function() {
+            this.timeout(10000);
+
+            const testWorkspacePath = path.join(__dirname, 'testWorkspace');
+            const uris = [
+                vscode.Uri.file(path.join(testWorkspacePath, 'repeat-one.txt')),
+                vscode.Uri.file(path.join(testWorkspacePath, 'repeat-two.txt'))
+            ];
+
+            try {
+                await vscode.workspace.fs.writeFile(uris[0], Buffer.from('Repeat content one'));
+                await vscode.workspace.fs.writeFile(uris[1], Buffer.from('Repeat content two'));
+
+                await vscode.commands.executeCommand('snapsource.copyToClipboard', uris[0], uris);
+                const firstCopy = await testClipboard.readText();
+                testClipboard.text = '';
+
+                await vscode.commands.executeCommand('snapsource.repeatLastCopy');
+
+                assert.strictEqual(await testClipboard.readText(), firstCopy);
+            } finally {
+                for (const uri of uris) {
+                    await vscode.workspace.fs.delete(uri);
+                }
+            }
+        });
+
+        test('Should repeat the last file copy, not a project structure copy in between (#31)', async function() {
+            this.timeout(10000);
+
+            const testWorkspacePath = path.join(__dirname, 'testWorkspace');
+            const uri = vscode.Uri.file(path.join(testWorkspacePath, 'repeat-guard.txt'));
+
+            try {
+                await vscode.workspace.fs.writeFile(uri, Buffer.from('Repeat guard content'));
+
+                await vscode.commands.executeCommand('snapsource.copyToClipboard', uri, [uri]);
+                await vscode.commands.executeCommand('snapsource.copyProjectStructure', vscode.Uri.file(testWorkspacePath));
+                testClipboard.text = '';
+
+                await vscode.commands.executeCommand('snapsource.repeatLastCopy');
+
+                assert.ok(
+                    (await testClipboard.readText()).includes('Repeat guard content'),
+                    'Should repeat the file copy, not the tree-only copy'
+                );
+            } finally {
+                await vscode.workspace.fs.delete(uri);
+            }
+        });
     });
-    
+
 
     suite('Workspace Trust Manifest', () => {
         // A real untrusted-workspace integration test is not possible:

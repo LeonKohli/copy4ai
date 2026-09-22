@@ -74,6 +74,11 @@
         "category": "Copy4AI"
       },
       {
+        "command": "snapsource.repeatLastCopy",
+        "title": "Repeat Last Copy",
+        "category": "Copy4AI"
+      },
+      {
         "command": "snapsource.copyProjectStructure",
         "title": "Copy Project Structure (Copy4AI)",
         "category": "Copy4AI"
@@ -104,6 +109,10 @@
         {
           "command": "snapsource.copyToClipboard",
           "when": "false"
+        },
+        {
+          "command": "snapsource.repeatLastCopy",
+          "when": "copy4ai.hasLastCopy"
         },
         {
           "command": "snapsource.copyProjectStructure",

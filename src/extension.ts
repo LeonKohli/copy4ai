@@ -7,6 +7,7 @@ import { ProjectTreeGenerator } from './utils/projectTree';
 import { CopyFeedbackReporter } from './utils/feedback';
 import { OutputFormatter } from './utils/formatters';
 import { IgnoreUtils } from './utils/ignoreUtils';
+import { LastCopyStore } from './utils/lastCopy';
 import { TokenCounter } from './utils/tokenCounter';
 import { UriUtils } from './utils/uriUtils';
 import { ScmChangesService } from './utils/scmChanges';
@@ -205,6 +206,12 @@ export class Copy4AIService {
                 progress.report({ increment: 5, message: "Copying to clipboard..." });
                 await this.clipboard.writeText(formattedContent);
 
+                // A tree-only copy is not a file selection: repeating it would
+                // copy contents the user never asked for.
+                if (!options.projectTreeOnly) {
+                    await LastCopyStore.remember(itemsToProcess);
+                }
+
                 if (config.enableTokenCounting && !options.projectTreeOnly) {
                     progress.report({ increment: 5, message: "Counting tokens..." });
                     await TokenCounter.showTokenInfo(
@@ -235,6 +242,21 @@ export class Copy4AIService {
                 throw error;
             }
         });
+    }
+
+    /**
+     * Copies the last selection again, read fresh from disk. Nothing about the
+     * result is cached: folders are re-read, exclusion rules re-applied, and
+     * files deleted since then are skipped with a warning.
+     */
+    public static async repeatLastCopy(): Promise<void> {
+        const items = LastCopyStore.get();
+        if (items.length === 0) {
+            vscode.window.showInformationMessage('Copy4AI: Nothing to repeat yet. Copy a selection first.');
+            return;
+        }
+
+        await this.copyToClipboard(undefined, items);
     }
 
     public static async copyScmChanges(uris: ReadonlyArray<vscode.Uri>): Promise<void> {
@@ -419,6 +441,13 @@ export function activate(context: vscode.ExtensionContext): void {
         }
     );
 
+    const repeatLastCopyCommand = vscode.commands.registerCommand(
+        'snapsource.repeatLastCopy',
+        async () => {
+            await Copy4AIService.repeatLastCopy();
+        }
+    );
+
     const copyProjectStructureCommand = vscode.commands.registerCommand(
         'snapsource.copyProjectStructure',
         async (uri?: vscode.Uri) => {
@@ -485,6 +514,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
     context.subscriptions.push(
         copyToClipboardCommand,
+        repeatLastCopyCommand,
         copyProjectStructureCommand,
         copyScmResourcesCommand,
         copyScmChangesCommand,
