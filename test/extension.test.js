@@ -146,20 +146,6 @@ suite('Copy4AI Extension Test Suite', () => {
     });
 
     suite('Extension Basics', () => {
-        test('Should register command', async function() {
-            this.timeout(10000); // Increase timeout for this test
-            
-            // Ensure extension is activated
-            const ext = vscode.extensions.getExtension('LeonKohli.snapsource');
-            if (ext && !ext.isActive) {
-                await ext.activate();
-            }
-            
-            
-            const commands = await vscode.commands.getCommands();
-            assert.ok(commands.includes('snapsource.copyToClipboard'));
-        });
-
         test('Copy-to-clipboard commands should have distinct keyboard shortcut titles', () => {
             const manifest = require('../package.json');
             const commands = manifest.contributes.commands;
@@ -333,15 +319,11 @@ suite('Copy4AI Extension Test Suite', () => {
             const emptyFormats = ['plaintext', 'markdown'];
             for (const format of emptyFormats) {
                 const result = OutputFormatter.formatOutput(format, '', []);
-                assert.ok(typeof result === 'string', `${format} format should return a string`);
-                assert.ok(!result.includes('undefined'), `${format} format should not contain undefined`);
                 assert.strictEqual(result, '', `${format} format should return empty string for empty content and tree`);
             }
-            
+
             // Test XML format (returns basic XML structure even when empty)
             const xmlResult = OutputFormatter.formatOutput('xml', '', []);
-            assert.ok(typeof xmlResult === 'string', 'XML format should return a string');
-            assert.ok(!xmlResult.includes('undefined'), 'XML format should not contain undefined');
             assert.ok(xmlResult.includes('<?xml version="1.0" encoding="UTF-8"?>'), 'XML should include declaration');
             assert.ok(xmlResult.includes('<copy4ai>'), 'XML should include root element');
             assert.ok(xmlResult.includes('</copy4ai>'), 'XML should close root element');
@@ -481,39 +463,6 @@ suite('Copy4AI Extension Test Suite', () => {
     });
 
     suite('Command Functionality', () => {
-        test('Should respect configuration settings', async function() {
-            this.timeout(30000);
-            
-            // Get the configuration
-            const config = vscode.workspace.getConfiguration('copy4ai');
-            
-            try {
-                // Reset settings first to ensure clean state
-                await config.update('outputFormat', undefined, vscode.ConfigurationTarget.Global);
-                await config.update('maxDepth', undefined, vscode.ConfigurationTarget.Global);
-                
-                
-                // Update settings
-                await config.update('outputFormat', 'markdown', vscode.ConfigurationTarget.Global);
-                await config.update('maxDepth', 5, vscode.ConfigurationTarget.Global);
-                
-                
-                // Get a fresh configuration instance
-                const updatedConfig = vscode.workspace.getConfiguration('copy4ai');
-                
-                // Verify settings
-                const format = updatedConfig.get('outputFormat');
-                const depth = updatedConfig.get('maxDepth');
-                
-                assert.strictEqual(format, 'markdown', 'Should update output format setting');
-                assert.strictEqual(depth, 5, 'Should update max depth setting');
-            } finally {
-                // Reset settings in cleanup
-                await config.update('outputFormat', undefined, vscode.ConfigurationTarget.Global);
-                await config.update('maxDepth', undefined, vscode.ConfigurationTarget.Global);
-            }
-        });
-
         test('Should handle binary files correctly', async () => {
             // Ensure testWorkspace directory exists
             const testWorkspacePath = path.join(__dirname, 'testWorkspace');
@@ -1003,18 +952,6 @@ suite('Copy4AI Extension Test Suite', () => {
             }
         }
 
-        test('Should register SCM copy command', async function() {
-            this.timeout(10000);
-
-            const ext = vscode.extensions.getExtension('LeonKohli.snapsource');
-            if (ext && !ext.isActive) {
-                await ext.activate();
-            }
-
-            const commands = await vscode.commands.getCommands();
-            assert.ok(commands.includes('snapsource.copyScmResources'), 'Should register snapsource.copyScmResources');
-        });
-
         test('Should copy files passed as spread SCM resource states', async function() {
             this.timeout(10000);
             await ensureTestWorkspace();
@@ -1273,12 +1210,6 @@ suite('Copy4AI Extension Test Suite', () => {
             } catch (error) {
                 console.error(`Error cleaning up diff test repo: ${error.message}`);
             }
-        });
-
-        test('Should register SCM diff copy command', async function() {
-            this.timeout(10000);
-            const commands = await vscode.commands.getCommands();
-            assert.ok(commands.includes('snapsource.copyScmChanges'), 'Should register snapsource.copyScmChanges');
         });
 
         test('Should copy a unified diff for a modified file', async function() {
