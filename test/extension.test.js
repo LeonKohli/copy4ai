@@ -1409,56 +1409,24 @@ suite('Copy4AI Extension Test Suite', () => {
                 'empty relative path should not be ignored');
         });
 
-        test('Should respect exclude configuration in workspace settings', async function() {
-            this.timeout(10000); // Increase timeout for this test
-            
-            // Get the test workspace path
+        test('Should exclude the configured path only, not same-named folders elsewhere (#5)', async function() {
+            this.timeout(10000);
+
+            // The test workspace ships copy4ai.exclude.paths: ["src/config"] in
+            // .vscode/settings.json, and holds a second config.js under
+            // vendor/package/config that must survive.
             const testWorkspacePath = path.join(__dirname, 'testWorkspace');
-            
-            try {
-                // Open the test workspace
-                await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(testWorkspacePath));
-                
-                
-                // Get the configuration
-                const config = vscode.workspace.getConfiguration('copy4ai');
-                const excludeConfig = config.get('exclude');
-                
-                // Verify the exclude configuration is loaded correctly
-                assert.ok(excludeConfig, 'Exclude configuration should be present');
-                assert.deepStrictEqual(excludeConfig.paths, ['src/config'], 'Should have correct paths in exclude config');
-                assert.deepStrictEqual(excludeConfig.patterns, ['*.log'], 'Should have correct patterns in exclude config');
-                
-                // Test copying the project structure
-                await vscode.commands.executeCommand('snapsource.copyProjectStructure');
-                
-                
-                // Get clipboard content
-                const clipboardContent = await testClipboard.readText();
-                
-                // For debugging purposes only - can be removed in production
-                // console.log('Clipboard content:', clipboardContent);
-                
-                // Verify src/config is excluded
-                const srcConfigIncluded = clipboardContent.includes('src/config/config.js');
-                assert.strictEqual(srcConfigIncluded, false, 'src/config/config.js should be excluded');
-                
-                // Check if src directory is marked as having ignored files
-                const srcIgnored = clipboardContent.includes('src') && 
-                                  (clipboardContent.includes('(all files ignored)') || 
-                                   clipboardContent.includes('(excluded') || 
-                                   !clipboardContent.includes('src/config'));
-                assert.strictEqual(srcIgnored, true, 'src directory should indicate files are ignored or excluded');
-                
-                // Verify vendor/package/config is included
-                const vendorPathIncluded = clipboardContent.includes('vendor') && 
-                                          clipboardContent.includes('package') && 
-                                          clipboardContent.includes('config');
-                assert.strictEqual(vendorPathIncluded, true, 'vendor/package/config path structure should be included');
-            } finally {
-                // Return to the original workspace if needed
-                // This step might be optional depending on your test setup
-            }
+            await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(testWorkspacePath));
+
+            await vscode.commands.executeCommand('snapsource.copyProjectStructure');
+
+            const tree = await testClipboard.readText();
+            assert.strictEqual(
+                (tree.match(/config\.js/g) ?? []).length,
+                1,
+                `tree should list vendor's config.js and not src/config's:\n${tree}`
+            );
+            assert.ok(tree.includes('vendor'), `vendor folder missing from tree:\n${tree}`);
         });
         
         test('Should use selected folder as root for project structure', async function() {
@@ -1514,50 +1482,30 @@ suite('Copy4AI Extension Test Suite', () => {
             }
         });
 
-        test('Should handle encoding issues gracefully and continue processing other files', async function() {
-            this.timeout(15000); // Increase timeout for this test
-            
-            // Get the test workspace path
-            const testWorkspacePath = path.join(__dirname, 'testWorkspace');
-            
-            try {
-                // Open the test workspace (it already has UTF-16 LE requirements.txt and other files)
-                await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(testWorkspacePath));
-                
-                
-                // Copy the entire test workspace content
-                await vscode.commands.executeCommand(
-                    'snapsource.copyToClipboard', 
-                    vscode.Uri.file(testWorkspacePath)
-                );
-                
-                
-                // Read the clipboard content
-                const clipboardContent = await testClipboard.readText();
-                
+        test('Should replace an unreadable file with a placeholder and keep copying the rest', async () => {
+            const folderPath = await require('fs/promises').mkdtemp(path.join(__dirname, 'testWorkspace', 'unreadable-'));
+            const folder = vscode.Uri.file(folderPath);
+            const folderName = path.basename(folderPath);
+            const code = vscode.Uri.joinPath(folder, 'app.ts');
+            const legacy = vscode.Uri.joinPath(folder, 'legacy.txt');
 
-                // Verify that UTF-16 file is handled gracefully
-                assert.ok(clipboardContent.includes('requirements.txt'), 'Should include requirements.txt file path');
-                assert.ok(clipboardContent.includes('Binary file content not included') || 
-                         clipboardContent.includes('unsupported encoding') ||
-                         clipboardContent.includes('UTF-16') ||
-                         clipboardContent.includes('convert to UTF-8') ||
-                         clipboardContent.includes('appears to be UTF-16'), 
-                         'Should indicate that requirements.txt content is not included due to encoding/binary detection');
-                
-                // Verify that other Python files are still processed despite the encoding error
-                assert.ok(clipboardContent.includes('starthanders.py'), 'Should include starthanders.py file');
-                assert.ok(clipboardContent.includes('urlhandlers.py'), 'Should include urlhandlers.py file');
-                assert.ok(clipboardContent.includes('def start_handler'), 'Should include content from starthanders.py');
-                assert.ok(clipboardContent.includes('def handle_url'), 'Should include content from urlhandlers.py');
-                
-                // Verify all files are listed in the project structure, even if content can't be read
-                assert.ok(clipboardContent.includes('Project Structure') || 
-                         clipboardContent.includes('File Contents'), 
-                         'Should include structure/content headers');
-                
+            try {
+                await vscode.workspace.fs.writeFile(code, Buffer.from('export const answer = 42;'));
+                // UTF-16 LE without a BOM: isBinaryFile claims it on the null
+                // bytes before the encoding branches in FileProcessor run.
+                await vscode.workspace.fs.writeFile(legacy, Buffer.from('legacy text', 'utf16le'));
+
+                await vscode.commands.executeCommand('snapsource.copyToClipboard', code, [legacy, code]);
+
+                assert.strictEqual(
+                    await testClipboard.readText(),
+                    OutputFormatter.formatOutput('markdown', `└── ${folderName}\n    ├── app.ts\n    └── legacy.txt\n`, [
+                        { path: `${folderName}/legacy.txt`, content: '[Binary file content not included]' },
+                        { path: `${folderName}/app.ts`, content: 'export const answer = 42;' }
+                    ])
+                );
             } finally {
-                // Note: We don't clean up the test files as they're part of the test workspace
+                await vscode.workspace.fs.delete(folder, { recursive: true });
             }
         });
 
