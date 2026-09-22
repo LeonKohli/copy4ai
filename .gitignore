@@ -5,12 +5,12 @@ out/
 coverage/
 .DS_Store
 
-# Files created by the test suite inside the checked-in test workspace;
-# cleaned up in teardown, but a crashed run must not dirty the repo
-test/testWorkspace/test.bin
-test/testWorkspace/large.txt
-test/testWorkspace/test1.txt
-test/testWorkspace/test2.txt
-test/testWorkspace/scm-*.txt
-test/testWorkspace/diffrepo/
-test/testWorkspace/subfolder/
+# The test suite writes fixtures into the checked-in test workspace and cleans
+# them up in teardown, but a crashed run must not dirty the repo. Everything in
+# there is transient except the files listed below.
+test/testWorkspace/*
+!test/testWorkspace/.gitignore
+!test/testWorkspace/.vscode/
+!test/testWorkspace/app.js
+!test/testWorkspace/src/
+!test/testWorkspace/vendor/
