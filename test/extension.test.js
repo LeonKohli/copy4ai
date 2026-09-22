@@ -180,46 +180,85 @@ suite('Copy4AI Extension Test Suite', () => {
     });
 
     suite('Content Formatting', () => {
-        test('Should format content correctly with all formats', async () => {
-            // Create test data
-            const projectTree = '├── src\n│   └── index.js\n└── package.json\n';
-            const content = [
-                {
-                    path: 'src/index.js',
-                    content: 'console.log("Hello World")'
-                },
-                {
-                    path: 'package.json',
-                    content: '{"name": "test"}'
-                }
-            ];
+        // The one place that pins the formatter's literal output. Everywhere else
+        // the expected clipboard content is built with formatOutput itself, so a
+        // change to the format would pass unnoticed there.
+        const sampleTree = '├── src\n│   └── index.js\n└── package.json\n';
+        const sampleFiles = [
+            { path: 'src/index.js', content: 'console.log("Hello World")' },
+            { path: 'package.json', content: '{"name": "test"}' }
+        ];
 
-            // Test plaintext format
-            const plaintextResult = OutputFormatter.formatOutput('plaintext', projectTree, content);
-            assert.strictEqual(typeof plaintextResult, 'string', 'Plaintext output should be a string');
-            assert.ok(plaintextResult.includes('Project Structure:'), 'Should include project structure header');
-            assert.ok(plaintextResult.includes('src/index.js'), 'Should include file path');
-            assert.ok(plaintextResult.includes('console.log("Hello World")'), 'Should include file content');
-            assert.ok(plaintextResult.includes('package.json'), 'Should include file path');
-            assert.ok(plaintextResult.includes('{"name": "test"}'), 'Should include file content');
+        test('Should write plaintext as a structure block followed by delimited files', () => {
+            assert.strictEqual(
+                OutputFormatter.formatOutput('plaintext', sampleTree, sampleFiles),
+                'Project Structure:\n' +
+                '\n' +
+                '├── src\n' +
+                '│   └── index.js\n' +
+                '└── package.json\n' +
+                '\n' +
+                '\n' +
+                'File Contents:\n' +
+                '\n' +
+                '--- src/index.js ---\n' +
+                'console.log("Hello World")\n' +
+                '\n' +
+                '--- package.json ---\n' +
+                '{"name": "test"}\n' +
+                '\n'
+            );
+        });
 
-            // Test markdown format
-            const markdownResult = OutputFormatter.formatOutput('markdown', projectTree, content);
-            assert.strictEqual(typeof markdownResult, 'string', 'Markdown output should be a string');
-            assert.ok(markdownResult.includes('# Project Structure'), 'Should include project structure header');
-            assert.ok(markdownResult.includes('```\n' + projectTree + '```'), 'Should include project tree in code block');
-            assert.ok(markdownResult.includes('```javascript\nconsole.log("Hello World")'), 'Should include JavaScript code block');
-            assert.ok(markdownResult.includes('```json\n{"name": "test"}'), 'Should include JSON code block');
+        test('Should write markdown with headings and language-tagged code blocks', () => {
+            assert.strictEqual(
+                OutputFormatter.formatOutput('markdown', sampleTree, sampleFiles),
+                '# Project Structure\n' +
+                '\n' +
+                '```\n' +
+                '├── src\n' +
+                '│   └── index.js\n' +
+                '└── package.json\n' +
+                '```\n' +
+                '\n' +
+                '# File Contents\n' +
+                '\n' +
+                '## src/index.js\n' +
+                '\n' +
+                '```javascript\n' +
+                'console.log("Hello World")\n' +
+                '```\n' +
+                '\n' +
+                '## package.json\n' +
+                '\n' +
+                '```json\n' +
+                '{"name": "test"}\n' +
+                '```\n' +
+                '\n'
+            );
+        });
 
-            // Test XML format
-            const xmlResult = OutputFormatter.formatOutput('xml', projectTree, content);
-            assert.strictEqual(typeof xmlResult, 'string', 'XML output should be a string');
-            assert.ok(xmlResult.includes('<?xml version="1.0" encoding="UTF-8"?>'), 'Should include XML declaration');
-            assert.ok(xmlResult.includes('<project_structure>'), 'Should include project structure tag');
-            assert.ok(xmlResult.includes('<file path="src/index.js">'), 'Should include file tag with path');
-            assert.ok(xmlResult.includes('<![CDATA[console.log("Hello World")]]>'), 'Should include content in CDATA');
-            assert.ok(xmlResult.includes('<file path="package.json">'), 'Should include file tag with path');
-            assert.ok(xmlResult.includes('<![CDATA[{"name": "test"}]]>'), 'Should include content in CDATA');
+        test('Should write XML with an indented structure block and CDATA file contents', () => {
+            assert.strictEqual(
+                OutputFormatter.formatOutput('xml', sampleTree, sampleFiles),
+                '<?xml version="1.0" encoding="UTF-8"?>\n' +
+                '<copy4ai>\n' +
+                '  <project_structure>\n' +
+                '    ├── src\n' +
+                '    │   └── index.js\n' +
+                '    └── package.json\n' +
+                '    \n' +
+                '  </project_structure>\n' +
+                '  <file_contents>\n' +
+                '    <file path="src/index.js">\n' +
+                '      <![CDATA[console.log("Hello World")]]>\n' +
+                '    </file>\n' +
+                '    <file path="package.json">\n' +
+                '      <![CDATA[{"name": "test"}]]>\n' +
+                '    </file>\n' +
+                '  </file_contents>\n' +
+                '</copy4ai>'
+            );
         });
 
         test('Should handle empty project tree', async () => {
