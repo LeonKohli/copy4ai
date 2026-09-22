@@ -3,6 +3,7 @@ node_modules
 *.vsix
 out/
 coverage/
+.DS_Store
 
 # Files created by the test suite inside the checked-in test workspace;
 # cleaned up in teardown, but a crashed run must not dirty the repo
