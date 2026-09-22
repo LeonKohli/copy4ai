@@ -146,21 +146,16 @@ suite('Copy4AI Extension Test Suite', () => {
     });
 
     suite('Extension Basics', () => {
-        test('Copy-to-clipboard commands should have distinct keyboard shortcut titles', () => {
-            const manifest = require('../package.json');
-            const commands = manifest.contributes.commands;
-            const copyCommand = commands.find(command => command.command === 'snapsource.copyToClipboard');
-            const scmCopyCommand = commands.find(command => command.command === 'snapsource.copyScmResources');
+        // Keyboard Shortcuts lists commands by "category: title". Two commands
+        // sharing that label leave the user unable to tell them apart.
+        test('Should give every contributed command a distinct Keyboard Shortcuts label', () => {
+            const commands = require('../package.json').contributes.commands;
+            const labels = commands.map(command => `${command.category}: ${command.title}`);
 
-            assert.notStrictEqual(
-                `${copyCommand.category}: ${copyCommand.title}`,
-                `${scmCopyCommand.category}: ${scmCopyCommand.title}`,
-                'Keyboard Shortcuts should not show duplicate Copy4AI copy command titles'
-            );
-            assert.strictEqual(
-                scmCopyCommand.title,
-                'Copy Source Control File Contents (Copy4AI)',
-                'Keyboard Shortcuts should use the VS Code UI term "Source Control", not SCM'
+            assert.deepStrictEqual(
+                labels.filter((label, index) => labels.indexOf(label) !== index),
+                [],
+                `duplicate command labels in the manifest: ${labels.join(', ')}`
             );
         });
     });
