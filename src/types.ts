@@ -45,6 +45,7 @@ export interface Copy4AIConfiguration {
     readonly includeProjectTree: boolean;
     readonly llmModel: string;
     readonly maxTokens: number | null;
+    /** @deprecated Superseded by `maxTokens: 0`. Still honoured for users who set it. */
     readonly enableTokenWarning: boolean;
     readonly enableTokenCounting: boolean;
 }

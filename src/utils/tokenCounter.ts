@@ -100,6 +100,11 @@ export class TokenCounter {
         };
     }
 
+    /**
+     * Reports the token count, as a warning above `maxTokens` and otherwise in
+     * the status bar. `enableWarning` carries the deprecated
+     * `copy4ai.enableTokenWarning` setting and silences the warning on its own.
+     */
     public static async showTokenInfo(
         content: string,
         model: string,
