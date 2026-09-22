@@ -7,6 +7,7 @@ const {
     ConfigurationService,
     ProjectTreeGenerator,
     TokenCounter,
+    SettingsMigration,
     Copy4AIService
 } = require('../out/extension');
 const path = require('path');
@@ -1300,11 +1301,11 @@ suite('Copy4AI Extension Test Suite', () => {
     });
 
     suite('Exclusion Patterns', () => {
-        test('Should resolve exclusion settings before copying the tree and file contents', async () => {
-            const folderPath = await require('fs/promises').mkdtemp(path.join(__dirname, 'testWorkspace', 'legacy-exclusions-'));
+        test('Should resolve copy4ai.exclude across scopes before copying', async () => {
+            const folderPath = await require('fs/promises').mkdtemp(path.join(__dirname, 'testWorkspace', 'exclusions-'));
             const folder = vscode.Uri.file(folderPath);
             const config = vscode.workspace.getConfiguration('copy4ai', folder);
-            const original = ['exclude', 'excludePaths', 'excludePatterns', 'ignoreGitIgnore'].map(key => ({ ...config.inspect(key), key }));
+            const original = ['exclude', 'ignoreGitIgnore'].map(key => ({ ...config.inspect(key), key }));
             const settingsUri = vscode.Uri.joinPath(vscode.workspace.getWorkspaceFolder(folder).uri, '.vscode', 'settings.json');
             const settingsBytes = await vscode.workspace.fs.readFile(settingsUri);
 
@@ -1323,23 +1324,16 @@ suite('Copy4AI Extension Test Suite', () => {
                 }
 
                 const scenarios = [
-                    { name: 'legacy settings', legacy: true, excluded: ['skip.tmp', 'private/key.txt'] },
-                    { name: 'defaults', excluded: ['debug.log', 'node_modules/dependency.js'] },
+                    { name: 'unset keeps the defaults', excluded: ['debug.log', 'node_modules/dependency.js'] },
+                    { name: 'empty object keeps the defaults', global: {}, excluded: ['debug.log', 'node_modules/dependency.js'] },
+                    { name: 'empty arrays disable exclusions', workspace: { paths: [], patterns: [] }, excluded: [] },
                     {
-                        name: 'explicit empty object overrides legacy settings', legacy: true,
-                        global: {}, excluded: ['debug.log', 'node_modules/dependency.js']
-                    },
-                    {
-                        name: 'empty arrays disable exclusions', legacy: true,
-                        workspace: { paths: [], patterns: [] }, excluded: []
-                    },
-                    {
-                        name: 'partial object retains defaults', legacy: true,
+                        name: 'partial object retains the default patterns',
                         workspace: { paths: [privatePath] },
                         excluded: ['private/key.txt', 'debug.log', 'node_modules/dependency.js']
                     },
                     {
-                        name: 'structured settings merge across scopes', legacy: true,
+                        name: 'paths and patterns merge across scopes',
                         global: { paths: [privatePath] }, workspace: { patterns: ['*.tmp'] },
                         excluded: ['skip.tmp', 'private/key.txt']
                     }
@@ -1348,8 +1342,6 @@ suite('Copy4AI Extension Test Suite', () => {
                 for (const scenario of scenarios) {
                     await config.update('exclude', scenario.global, vscode.ConfigurationTarget.Global);
                     await config.update('exclude', scenario.workspace, vscode.ConfigurationTarget.Workspace);
-                    await config.update('excludePaths', scenario.legacy ? [privatePath] : undefined, vscode.ConfigurationTarget.Workspace);
-                    await config.update('excludePatterns', scenario.legacy ? ['*.tmp'] : undefined, vscode.ConfigurationTarget.Workspace);
                     await vscode.commands.executeCommand('snapsource.copyToClipboard', folder);
                     const output = await testClipboard.readText();
                     for (const name of files) {
@@ -1365,6 +1357,57 @@ suite('Copy4AI Extension Test Suite', () => {
                 }
                 await vscode.workspace.fs.writeFile(settingsUri, settingsBytes);
                 await vscode.workspace.fs.delete(folder, { recursive: true });
+            }
+        });
+
+        test('Should move the deprecated exclusion settings into copy4ai.exclude and delete them', async () => {
+            const config = vscode.workspace.getConfiguration('copy4ai');
+            const original = ['exclude', 'excludePaths', 'excludePatterns']
+                .map(key => ({ key, globalValue: config.inspect(key).globalValue }));
+
+            try {
+                await config.update('exclude', undefined, vscode.ConfigurationTarget.Global);
+                await config.update('excludePaths', ['src/secrets'], vscode.ConfigurationTarget.Global);
+                await config.update('excludePatterns', ['*.pem'], vscode.ConfigurationTarget.Global);
+
+                await SettingsMigration.migrateLegacyExclusions();
+
+                const migrated = vscode.workspace.getConfiguration('copy4ai');
+                assert.deepStrictEqual(
+                    migrated.inspect('exclude').globalValue,
+                    { paths: ['src/secrets'], patterns: ['*.pem'] }
+                );
+                assert.strictEqual(migrated.inspect('excludePaths').globalValue, undefined, 'excludePaths should be gone');
+                assert.strictEqual(migrated.inspect('excludePatterns').globalValue, undefined, 'excludePatterns should be gone');
+            } finally {
+                for (const { key, globalValue } of original) {
+                    await config.update(key, globalValue, vscode.ConfigurationTarget.Global);
+                }
+            }
+        });
+
+        test('Should keep an existing copy4ai.exclude when deleting the deprecated settings', async () => {
+            const config = vscode.workspace.getConfiguration('copy4ai');
+            const original = ['exclude', 'excludePaths', 'excludePatterns']
+                .map(key => ({ key, globalValue: config.inspect(key).globalValue }));
+
+            try {
+                await config.update('exclude', { paths: ['keep/me'], patterns: [] }, vscode.ConfigurationTarget.Global);
+                await config.update('excludePaths', ['src/secrets'], vscode.ConfigurationTarget.Global);
+
+                await SettingsMigration.migrateLegacyExclusions();
+
+                const migrated = vscode.workspace.getConfiguration('copy4ai');
+                assert.deepStrictEqual(
+                    migrated.inspect('exclude').globalValue,
+                    { paths: ['keep/me'], patterns: [] },
+                    'a value the user already set wins over the deprecated one'
+                );
+                assert.strictEqual(migrated.inspect('excludePaths').globalValue, undefined, 'excludePaths should be gone');
+            } finally {
+                for (const { key, globalValue } of original) {
+                    await config.update(key, globalValue, vscode.ConfigurationTarget.Global);
+                }
             }
         });
 

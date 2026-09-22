@@ -8,6 +8,10 @@ All notable changes to Copy4AI. The format follows [Keep a Changelog](https://ke
 
 - **Copy4AI: Repeat Last Copy** in the Command Palette copies the previous selection again, without picking the files a second time. The files are read fresh, so the copy reflects your latest edits. The selection lives in the current window and is gone after a reload. ([#31](https://github.com/LeonKohli/copy4ai/issues/31), requested by [@migig](https://github.com/migig))
 
+### Changed
+
+- `copy4ai.excludePaths` and `copy4ai.excludePatterns` are migrated into `copy4ai.exclude` on the next run and then removed from your settings. Copy4AI reads the one setting from now on, so the Settings editor always shows the exclusions that are actually in effect. A `copy4ai.exclude` you already configured is kept as is, and workspace settings are only touched in a trusted workspace.
+
 ## [2.1.1] - 2026-09-21
 
 ### Fixed

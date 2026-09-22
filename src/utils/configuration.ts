@@ -1,6 +1,9 @@
 import * as vscode from 'vscode';
 import { Copy4AIConfiguration, ExcludeConfig } from '../types';
 
+// Mirrors the copy4ai.exclude default in package.json
+const DEFAULT_EXCLUDE_PATTERNS = ['node_modules', '*.log'];
+
 export class ConfigurationService {
     private static readonly configSection = 'copy4ai';
 
@@ -24,23 +27,12 @@ export class ConfigurationService {
 
     public static getExcludeConfig(resource?: vscode.Uri): ExcludeConfig {
         const config = vscode.workspace.getConfiguration(this.configSection, resource);
-        const setting = config.inspect<Partial<ExcludeConfig>>('exclude');
-        const hasStructuredSetting = setting?.globalValue !== undefined ||
-            setting?.workspaceValue !== undefined || setting?.workspaceFolderValue !== undefined;
-        const structured = hasStructuredSetting ? config.get<Partial<ExcludeConfig>>('exclude') : undefined;
-        if (structured && (Array.isArray(structured.paths) || Array.isArray(structured.patterns))) {
-            return {
-                paths: Array.isArray(structured.paths) ? structured.paths : [],
-                patterns: Array.isArray(structured.patterns) ? structured.patterns : ['node_modules', '*.log']
-            };
-        }
+        // A partially written object keeps the default for the missing half
+        const exclude = config.get<Partial<ExcludeConfig>>('exclude');
 
-        // Legacy flat arrays
-        const excludePaths = config.get<string[]>('excludePaths');
-        const excludePatterns = config.get<string[]>('excludePatterns');
         return {
-            paths: Array.isArray(excludePaths) ? excludePaths : [],
-            patterns: Array.isArray(excludePatterns) ? excludePatterns : ['node_modules', '*.log']
+            paths: Array.isArray(exclude?.paths) ? exclude.paths : [],
+            patterns: Array.isArray(exclude?.patterns) ? exclude.patterns : DEFAULT_EXCLUDE_PATTERNS
         };
     }
 

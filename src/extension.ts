@@ -11,6 +11,7 @@ import { LastCopyStore } from './utils/lastCopy';
 import { TokenCounter } from './utils/tokenCounter';
 import { UriUtils } from './utils/uriUtils';
 import { ScmChangesService } from './utils/scmChanges';
+import { SettingsMigration } from './utils/settingsMigration';
 
 type KeyboardSelectionProvider = () => Promise<ReadonlyArray<vscode.Uri>>;
 
@@ -433,7 +434,7 @@ export class Copy4AIService {
     }
 }
 
-export function activate(context: vscode.ExtensionContext): void {
+export async function activate(context: vscode.ExtensionContext): Promise<void> {
     const copyToClipboardCommand = vscode.commands.registerCommand(
         'snapsource.copyToClipboard',
         async (uri?: vscode.Uri, uris?: vscode.Uri[]) => {
@@ -521,6 +522,10 @@ export function activate(context: vscode.ExtensionContext): void {
         toggleProjectTreeCommand,
         toggleDotFilesCommand
     );
+
+    // Awaited so the first copy already reads the migrated settings. VS Code
+    // resolves activation before it dispatches the command that triggered it.
+    await SettingsMigration.migrateLegacyExclusions();
 }
 
 export function deactivate(): void {}
@@ -532,3 +537,4 @@ export { IgnoreUtils } from './utils/ignoreUtils';
 export { ConfigurationService } from './utils/configuration';
 export { ProjectTreeGenerator } from './utils/projectTree';
 export { TokenCounter } from './utils/tokenCounter';
+export { SettingsMigration } from './utils/settingsMigration';

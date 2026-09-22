@@ -233,8 +233,10 @@ Older setups use `copy4ai.excludePaths` and `copy4ai.excludePatterns`. Both are 
 | `copy4ai.llmModel` | `"claude-sonnet-5"` | Model that selects the tokenizer. |
 | `copy4ai.maxTokens` | `100000` | Token count that triggers the warning. `0` turns it off. |
 | `copy4ai.enableTokenWarning` | `true` | Deprecated. Set `copy4ai.maxTokens` to `0`. |
-| `copy4ai.excludePaths` | `[]` | Deprecated. Use `copy4ai.exclude.paths`. |
-| `copy4ai.excludePatterns` | `["node_modules", "*.log"]` | Deprecated. Use `copy4ai.exclude.patterns`. |
+| `copy4ai.excludePaths` | `[]` | Deprecated. Moved into `copy4ai.exclude.paths` automatically. |
+| `copy4ai.excludePatterns` | `["node_modules", "*.log"]` | Deprecated. Moved into `copy4ai.exclude.patterns` automatically. |
+
+If you still have `copy4ai.excludePaths` or `copy4ai.excludePatterns` in your settings, Copy4AI moves their values into `copy4ai.exclude` the next time it runs and deletes the old entries. Your exclusions keep working; you just end up with one setting instead of two spellings. A value you already put in `copy4ai.exclude` is never overwritten. In an untrusted workspace only your user settings are migrated.
 
 ## Remote and untrusted workspaces
 
