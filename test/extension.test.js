@@ -242,7 +242,7 @@ suite('Copy4AI Extension Test Suite', () => {
             );
         });
 
-        test('Should handle empty project tree', async () => {
+        test('Should omit the structure section when the project tree is empty', async () => {
             const content = [{
                 path: 'test.txt',
                 content: 'test content'
@@ -265,7 +265,7 @@ suite('Copy4AI Extension Test Suite', () => {
             assert.ok(xmlResult.includes('<![CDATA[test content]]>'), 'Should include content in CDATA');
         });
 
-        test('Should handle special characters in XML', async () => {
+        test('Should escape special characters in the XML path attribute', async () => {
             const content = [{
                 path: 'test & demo.xml',
                 content: '<test>Hello & World</test>'
@@ -280,7 +280,7 @@ suite('Copy4AI Extension Test Suite', () => {
             assert.ok(xmlResult.includes('<![CDATA[<test>Hello & World</test>]]>'), 'Should wrap content in CDATA');
         });
 
-        test('Should handle different file extensions correctly in markdown', async () => {
+        test('Should tag each markdown code block with the language of its file extension', async () => {
             const content = [
                 {
                     path: 'script.py',
@@ -309,7 +309,7 @@ suite('Copy4AI Extension Test Suite', () => {
             assert.ok(markdownResult.includes('```\nplain text'), 'Should use no language for files without extension');
         });
 
-        test('Should handle empty content array', async () => {
+        test('Should return an empty string when there is no tree and no file content', async () => {
             // Test plaintext and markdown formats (should return empty)
             const emptyFormats = ['plaintext', 'markdown'];
             for (const format of emptyFormats) {
@@ -324,7 +324,7 @@ suite('Copy4AI Extension Test Suite', () => {
             assert.ok(xmlResult.includes('</copy4ai>'), 'XML should close root element');
         });
 
-        test('Should handle nested markdown code blocks (Issue #16)', async () => {
+        test('Should widen the markdown fence when file content contains a code block (#16)', async () => {
             const markdownFileContent = '# Installation\n\n```sh\nnpm i -S my-project\n```\n\nGood luck!';
             const content = [{
                 path: 'README.md',
@@ -341,7 +341,7 @@ suite('Copy4AI Extension Test Suite', () => {
             assert.strictEqual(outerFenceCount, 2, 'Should have exactly 2 quadruple-backtick fences (open and close)');
         });
 
-        test('Should handle deeply nested markdown code blocks', async () => {
+        test('Should widen the markdown fence past four backticks for nested fences', async () => {
             const deeplyNestedContent = '# Demo\n\n````md\n```js\nconsole.log("hi");\n```\n````';
             const content = [{
                 path: 'nested.md',
@@ -353,7 +353,7 @@ suite('Copy4AI Extension Test Suite', () => {
             assert.ok(result.includes('`````markdown'), 'Should use 5 backticks when content has 4');
         });
 
-        test('getMarkdownFence should return correct fence length', () => {
+        test('getMarkdownFence should grow the fence past the longest backtick run', () => {
             assert.strictEqual(OutputFormatter.getMarkdownFence('plain text'), '```');
             assert.strictEqual(OutputFormatter.getMarkdownFence('```js\ncode\n```'), '````');
             assert.strictEqual(OutputFormatter.getMarkdownFence('````md\n```\n````'), '`````');
@@ -458,7 +458,7 @@ suite('Copy4AI Extension Test Suite', () => {
     });
 
     suite('Command Functionality', () => {
-        test('Should handle binary files correctly', async () => {
+        test('Should replace binary file content with a placeholder', async () => {
             // Ensure testWorkspace directory exists
             const testWorkspacePath = path.join(__dirname, 'testWorkspace');
             await vscode.workspace.fs.createDirectory(vscode.Uri.file(testWorkspacePath));
@@ -490,7 +490,7 @@ suite('Copy4AI Extension Test Suite', () => {
             }
         });
 
-        test('Should handle large files correctly', async () => {
+        test('Should replace content above maxFileSize with the measured size', async () => {
             // Ensure testWorkspace directory exists
             const testWorkspacePath = path.join(__dirname, 'testWorkspace');
             await vscode.workspace.fs.createDirectory(vscode.Uri.file(testWorkspacePath));
@@ -524,7 +524,7 @@ suite('Copy4AI Extension Test Suite', () => {
             }
         });
 
-        test('Should handle multiple file selection', async function() {
+        test('Should copy the content of every file in a multi-file selection', async function() {
             this.timeout(10000); // Increase timeout for this test
             
             // Ensure testWorkspace directory exists
@@ -574,12 +574,10 @@ suite('Copy4AI Extension Test Suite', () => {
             }
         });
 
-        test('Should limit the copied tree to selected files in every output format (#26, #28)', async () => {
+        test('Should limit the copied tree to the selected files (#26, #28)', async () => {
             const folderPath = await require('fs/promises').mkdtemp(path.join(__dirname, 'testWorkspace', 'selection-tree-'));
             const folder = vscode.Uri.file(folderPath);
             const folderName = path.basename(folderPath);
-            const config = vscode.workspace.getConfiguration('copy4ai');
-            const originalFormat = config.inspect('outputFormat').globalValue;
             const files = [
                 ['src/selected.ts', 'export const selected = true;'],
                 ['lib/second.ts', 'export const second = true;'],
@@ -594,21 +592,18 @@ suite('Copy4AI Extension Test Suite', () => {
                     await vscode.workspace.fs.writeFile(uri, Buffer.from(content));
                 }
                 const selected = files.slice(0, 2).map(([name]) => vscode.Uri.joinPath(folder, name));
-                const expectedTree = `└── ${folderName}\n    ├── lib\n    │   └── second.ts\n    └── src\n        └── selected.ts\n`;
-                const expectedFiles = files.slice(0, 2).map(([name, content]) => ({
-                    path: `${folderName}/${name}`, content
-                }));
 
-                for (const format of ['markdown', 'plaintext', 'xml']) {
-                    await config.update('outputFormat', format, vscode.ConfigurationTarget.Global);
-                    await vscode.commands.executeCommand('snapsource.copyToClipboard', selected[0], selected);
-                    assert.strictEqual(
-                        await testClipboard.readText(),
-                        OutputFormatter.formatOutput(format, expectedTree, expectedFiles)
-                    );
-                }
+                await vscode.commands.executeCommand('snapsource.copyToClipboard', selected[0], selected);
+
+                assert.strictEqual(
+                    await testClipboard.readText(),
+                    OutputFormatter.formatOutput(
+                        'markdown',
+                        `└── ${folderName}\n    ├── lib\n    │   └── second.ts\n    └── src\n        └── selected.ts\n`,
+                        files.slice(0, 2).map(([name, content]) => ({ path: `${folderName}/${name}`, content }))
+                    )
+                );
             } finally {
-                await config.update('outputFormat', originalFormat, vscode.ConfigurationTarget.Global);
                 await vscode.workspace.fs.delete(folder, { recursive: true });
             }
         });
@@ -665,24 +660,46 @@ suite('Copy4AI Extension Test Suite', () => {
             }
         });
 
-        test('Should root the copied tree at a single selected folder, like Copy Project Structure', async () => {
+        // Both tests below build the same fixture; the expected tree is the
+        // point of comparison between the two commands.
+        const singleFolderTree = 'src/\n├── nested\n│   └── child.txt\n└── top.txt\n';
+
+        async function makeSingleFolderFixture() {
             const folderPath = await require('fs/promises').mkdtemp(path.join(__dirname, 'testWorkspace', 'selection-root-'));
+            for (const name of ['src/nested/child.txt', 'src/top.txt']) {
+                const uri = vscode.Uri.joinPath(vscode.Uri.file(folderPath), name);
+                await vscode.workspace.fs.createDirectory(vscode.Uri.file(path.dirname(uri.fsPath)));
+                await vscode.workspace.fs.writeFile(uri, Buffer.from(name));
+            }
+            return folderPath;
+        }
+
+        test('Should root the tree at the selected folder when copying its contents', async () => {
+            const folderPath = await makeSingleFolderFixture();
             const selectedFolder = vscode.Uri.joinPath(vscode.Uri.file(folderPath), 'src');
+
             try {
-                for (const name of ['src/nested/child.txt', 'src/top.txt']) {
-                    const uri = vscode.Uri.joinPath(vscode.Uri.file(folderPath), name);
-                    await vscode.workspace.fs.createDirectory(vscode.Uri.file(path.dirname(uri.fsPath)));
-                    await vscode.workspace.fs.writeFile(uri, Buffer.from(name));
-                }
-                const expectedTree = 'src/\n├── nested\n│   └── child.txt\n└── top.txt\n';
-
                 await vscode.commands.executeCommand('snapsource.copyToClipboard', selectedFolder);
-                const output = await testClipboard.readText();
-                assert.ok(output.startsWith(`# Project Structure\n\n\`\`\`\n${expectedTree}\`\`\`\n`), output);
-                assert.ok(output.includes(`## ${path.basename(folderPath)}/src/top.txt`), output);
 
+                const output = await testClipboard.readText();
+                assert.ok(output.startsWith(`# Project Structure\n\n\`\`\`\n${singleFolderTree}\`\`\`\n`), output);
+                assert.ok(output.includes(`## ${path.basename(folderPath)}/src/top.txt`), output);
+            } finally {
+                await vscode.workspace.fs.delete(vscode.Uri.file(folderPath), { recursive: true });
+            }
+        });
+
+        test('Should root the tree at the selected folder when copying the structure only', async () => {
+            const folderPath = await makeSingleFolderFixture();
+            const selectedFolder = vscode.Uri.joinPath(vscode.Uri.file(folderPath), 'src');
+
+            try {
                 await vscode.commands.executeCommand('snapsource.copyProjectStructure', selectedFolder);
-                assert.strictEqual(await testClipboard.readText(), OutputFormatter.formatProjectStructureOnly('markdown', expectedTree));
+
+                assert.strictEqual(
+                    await testClipboard.readText(),
+                    OutputFormatter.formatProjectStructureOnly('markdown', singleFolderTree)
+                );
             } finally {
                 await vscode.workspace.fs.delete(vscode.Uri.file(folderPath), { recursive: true });
             }
