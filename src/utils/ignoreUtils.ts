@@ -37,38 +37,6 @@ export class IgnoreUtils {
         }
     }
 
-    public static createAbsolutePathExclusionFn(
-        workspacePath: string,
-        absolutePathsToExclude: string[] = []
-    ): (filePath: string) => boolean {
-        if (!absolutePathsToExclude || absolutePathsToExclude.length === 0) {
-            return () => false;
-        }
-
-        const normalizedExcludePaths = absolutePathsToExclude.map(excludePath => {
-            const normalizedPath = path.normalize(excludePath);
-
-            // Support both absolute and relative paths in configuration
-            // Relative paths are resolved against workspace root for consistency
-            const absolutePath = path.isAbsolute(normalizedPath)
-                ? normalizedPath
-                : path.join(workspacePath, normalizedPath);
-
-            return path.normalize(absolutePath);
-        });
-
-        return (filePath: string): boolean => {
-            const normalizedFilePath = path.normalize(filePath);
-
-            return normalizedExcludePaths.some(excludePath => {
-                // Match both exact paths and subdirectories
-                // e.g., excluding "src/config" also excludes "src/config/secrets.json"
-                return normalizedFilePath.startsWith(excludePath + path.sep) ||
-                       normalizedFilePath === excludePath;
-            });
-        };
-    }
-
     public static createResourcePathExclusionFn(
         workspaceUri: vscode.Uri,
         pathsToExclude: ReadonlyArray<string> = []
@@ -117,23 +85,6 @@ export class IgnoreUtils {
                 relativePath === excludePath ||
                 relativePath.startsWith(`${excludePath}/`)
             );
-        };
-    }
-
-    public static createContentExclusionFn(
-        workspacePath: string,
-        patterns: ReadonlyArray<string>
-    ): (filePath: string) => boolean {
-        if (!patterns || patterns.length === 0) {
-            return () => false;
-        }
-
-        const ig = ignore().add(patterns as string[]);
-
-        return (filePath: string): boolean => {
-            const relativePath = path.relative(workspacePath, filePath);
-            const relativePosix = relativePath.split(path.sep).join('/');
-            return ig.ignores(relativePosix);
         };
     }
 
