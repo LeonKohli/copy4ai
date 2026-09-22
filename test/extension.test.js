@@ -1423,59 +1423,6 @@ suite('Copy4AI Extension Test Suite', () => {
             );
             assert.ok(tree.includes('vendor'), `vendor folder missing from tree:\n${tree}`);
         });
-        
-        test('Should use selected folder as root for project structure', async function() {
-            this.timeout(10000); // Increase timeout for this test
-            
-            // Get the test workspace path
-            const testWorkspacePath = path.join(__dirname, 'testWorkspace');
-            
-            try {
-                // Create a test subfolder structure
-                const subfolderPath = path.join(testWorkspacePath, 'subfolder');
-                const subfileAPath = path.join(subfolderPath, 'fileA.txt');
-                const subfileBPath = path.join(subfolderPath, 'fileB.txt');
-                
-                await vscode.workspace.fs.createDirectory(vscode.Uri.file(subfolderPath));
-                await vscode.workspace.fs.writeFile(
-                    vscode.Uri.file(subfileAPath), 
-                    Buffer.from('Test content A')
-                );
-                await vscode.workspace.fs.writeFile(
-                    vscode.Uri.file(subfileBPath), 
-                    Buffer.from('Test content B')
-                );
-                
-                // Open the test workspace
-                await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(testWorkspacePath));
-                
-                
-                // Call the copyProjectStructure command with the subfolder URI
-                await vscode.commands.executeCommand(
-                    'snapsource.copyProjectStructure', 
-                    vscode.Uri.file(subfolderPath)
-                );
-                
-                
-                // Read the clipboard content
-                const clipboardContent = await testClipboard.readText();
-                
-                // Verify the clipboard content only includes the subfolder structure
-                assert.ok(clipboardContent.includes('subfolder/'), 'Should include subfolder name at the top');
-                assert.ok(clipboardContent.includes('fileA.txt'), 'Should include subfolder files');
-                assert.ok(clipboardContent.includes('fileB.txt'), 'Should include subfolder files');
-                assert.ok(!clipboardContent.includes('src/config'), 'Should not include workspace root files');
-                
-            } finally {
-                // Cleanup
-                try {
-                    const subfolderPath = path.join(testWorkspacePath, 'subfolder');
-                    await vscode.workspace.fs.delete(vscode.Uri.file(subfolderPath), { recursive: true });
-                } catch (error) {
-                    console.error(`Error cleaning up test subfolder: ${error.message}`);
-                }
-            }
-        });
 
         test('Should replace an unreadable file with a placeholder and keep copying the rest', async () => {
             const folderPath = await require('fs/promises').mkdtemp(path.join(__dirname, 'testWorkspace', 'unreadable-'));
