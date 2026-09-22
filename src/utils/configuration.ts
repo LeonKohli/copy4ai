@@ -11,8 +11,6 @@ export class ConfigurationService {
             ignoreGitIgnore: config.get('ignoreGitIgnore', true),
             ignoreDotFiles: config.get('ignoreDotFiles', true),
             maxDepth: config.get('maxDepth', 5),
-            excludePaths: config.get('excludePaths', []),
-            excludePatterns: config.get('excludePatterns', ['node_modules', '*.log']),
             excludeContentPatterns: config.get('excludeContentPatterns', []),
             outputFormat: config.get('outputFormat', 'markdown'),
             maxFileSize: config.get('maxFileSize', 1024 * 1024),

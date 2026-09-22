@@ -15,11 +15,6 @@ export interface ExcludeConfig {
     patterns: string[];
 }
 
-export interface ProcessedContent {
-    projectTree: string;
-    files: FileContent[];
-}
-
 // Tokenization method actually used for the count. Surfaced to the user so
 // they can judge how trustworthy the number is.
 //   - openai-o200k:     exact (gpt-tokenizer) for GPT-5/4o/4.1/o-series
@@ -44,8 +39,6 @@ export interface Copy4AIConfiguration {
     readonly ignoreGitIgnore: boolean;
     readonly ignoreDotFiles: boolean;
     readonly maxDepth: number;
-    readonly excludePaths: ReadonlyArray<string>;
-    readonly excludePatterns: ReadonlyArray<string>;
     readonly excludeContentPatterns: ReadonlyArray<string>;
     readonly outputFormat: OutputFormat;
     readonly maxFileSize: number;
@@ -63,7 +56,7 @@ export interface ProcessFileOptions {
     cancellationToken: vscode.CancellationToken;
 }
 
-export const OUTPUT_FORMATS = ['plaintext', 'markdown', 'xml'] as const;
+const OUTPUT_FORMATS = ['plaintext', 'markdown', 'xml'] as const;
 export type OutputFormat = typeof OUTPUT_FORMATS[number];
 
 export type ProgressReporter = vscode.Progress<{

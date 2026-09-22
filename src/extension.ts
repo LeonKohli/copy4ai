@@ -531,6 +531,4 @@ export { FileProcessor } from './utils/fileProcessor';
 export { IgnoreUtils } from './utils/ignoreUtils';
 export { ConfigurationService } from './utils/configuration';
 export { ProjectTreeGenerator } from './utils/projectTree';
-export { CopyFeedbackReporter } from './utils/feedback';
 export { TokenCounter } from './utils/tokenCounter';
-export { UriUtils } from './utils/uriUtils';
