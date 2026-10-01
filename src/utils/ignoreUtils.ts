@@ -6,7 +6,7 @@ import { UriUtils } from './uriUtils';
 export class IgnoreUtils {
 
     public static createIgnoreInstance(patterns: string[] = [], ignoreDotFiles: boolean = true): ignore.Ignore {
-        const ig = ignore().add(patterns);
+        const ig = ignore({ ignorecase: false }).add(patterns);
 
         if (ignoreDotFiles) {
             // .* pattern excludes all dot files/directories (.git, .env, .vscode, etc.)
@@ -96,7 +96,7 @@ export class IgnoreUtils {
             return () => false;
         }
 
-        const ig = ignore().add(patterns as string[]);
+        const ig = ignore({ ignorecase: false }).add(patterns as string[]);
 
         return (resourceUri: vscode.Uri): boolean => {
             try {
