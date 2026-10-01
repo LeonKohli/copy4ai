@@ -2,6 +2,17 @@
 
 All notable changes to Copy4AI. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/).
 
+## [2.3.0] - 2026-10-01
+
+### Added
+
+- **Copy Selected Tabs (Copy4AI)** copies files selected in the editor tab bar. Ctrl-click tabs on Windows or Linux, or Cmd-click on macOS, then right-click a selected tab. Files are read from disk and must belong to the same workspace folder. ([#34](https://github.com/LeonKohli/copy4ai/issues/34))
+- **Copy4AI: Force Copy Without Exclusions…** in the Command Palette copies the current selection after confirming the targets, bypassing dot-file, `.gitignore`, path, pattern, and content exclusions for that copy. Settings and the previous Repeat Last Copy selection stay unchanged. Binary, encoding, and file size limits still apply, and the operation can be cancelled. ([#35](https://github.com/LeonKohli/copy4ai/issues/35))
+
+### Fixed
+
+- Exclusion patterns now match case-sensitively. A `.gitignore` rule such as `*.BASE.*` no longer excludes `tsconfig.base.json`. This also applies to `copy4ai.exclude.patterns` and `copy4ai.excludeContentPatterns`. Existing patterns can now include files they previously excluded when the letter case differs. Copy4AI does not use Git's `core.ignoreCase` setting. ([#33](https://github.com/LeonKohli/copy4ai/issues/33))
+
 ## [2.2.0] - 2026-09-22
 
 ### Added
