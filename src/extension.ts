@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { homedir } from 'os';
 
 import { Copy4AIOptions, FileContent, ProcessFileOptions, ProgressReporter, CancellationToken } from './types';
 import { ConfigurationService } from './utils/configuration';
@@ -12,6 +13,7 @@ import { TokenCounter } from './utils/tokenCounter';
 import { UriUtils } from './utils/uriUtils';
 import { ScmChangesService } from './utils/scmChanges';
 import { SettingsMigration } from './utils/settingsMigration';
+import { TabSelection } from './utils/tabSelection';
 
 type KeyboardSelectionProvider = () => Promise<ReadonlyArray<vscode.Uri>>;
 
@@ -32,8 +34,9 @@ export class Copy4AIService {
         // Copying a few thousand files takes about a second, so progress is
         // background noise: it belongs in the status bar, not in a notification.
         return vscode.window.withProgress({
-            location: vscode.ProgressLocation.Window,
-            title: "Copy4AI"
+            location: options.bypassExclusions ? vscode.ProgressLocation.Notification : vscode.ProgressLocation.Window,
+            title: options.bypassExclusions ? "Copy4AI: Force Copy" : "Copy4AI",
+            cancellable: options.bypassExclusions === true
         }, async (progress: ProgressReporter, token: CancellationToken) => {
             try {
                 progress.report({ increment: 0, message: "Initializing..." });
@@ -56,20 +59,23 @@ export class Copy4AIService {
 
                 progress.report({ increment: 10, message: "Setting up file filters..." });
 
-                const ig = IgnoreUtils.createIgnoreInstance(excludeConfig.patterns, config.ignoreDotFiles);
+                const ig = IgnoreUtils.createIgnoreInstance(
+                    options.bypassExclusions ? [] : excludeConfig.patterns,
+                    options.bypassExclusions ? false : config.ignoreDotFiles
+                );
 
-                if (config.ignoreGitIgnore) {
+                if (config.ignoreGitIgnore && !options.bypassExclusions) {
                     await IgnoreUtils.addGitIgnoreRules(workspaceFolder.uri, ig);
                 }
 
                 const isExcludedByResourcePath = IgnoreUtils.createResourcePathExclusionFn(
                     workspaceFolder.uri,
-                    excludeConfig.paths
+                    options.bypassExclusions ? [] : excludeConfig.paths
                 );
 
                 const shouldExcludeContent = IgnoreUtils.createResourceContentExclusionFn(
                     workspaceFolder.uri,
-                    config.excludeContentPatterns
+                    options.bypassExclusions ? [] : config.excludeContentPatterns
                 );
 
                 const copyableItems: { uri: vscode.Uri; stats: vscode.FileStat }[] = [];
@@ -205,11 +211,14 @@ export class Copy4AIService {
                 }
 
                 progress.report({ increment: 5, message: "Copying to clipboard..." });
+                if (token.isCancellationRequested) {
+                    throw new vscode.CancellationError();
+                }
                 await this.clipboard.writeText(formattedContent);
 
                 // A tree-only copy is not a file selection: repeating it would
                 // copy contents the user never asked for.
-                if (!options.projectTreeOnly) {
+                if (!options.projectTreeOnly && !options.bypassExclusions) {
                     await LastCopyStore.remember(itemsToProcess);
                 }
 
@@ -258,6 +267,27 @@ export class Copy4AIService {
         }
 
         await this.copyToClipboard(undefined, items);
+    }
+
+    public static async forceCopy(uri?: vscode.Uri, uris?: ReadonlyArray<vscode.Uri>): Promise<void> {
+        const items = await this.resolveItemsToProcess(uri, uris);
+        if (items.length === 0) {
+            vscode.window.showInformationMessage('Copy4AI: Select files or folders, or open a file to force copy.');
+            return;
+        }
+        this.getCommonWorkspaceFolder(items);
+        const targets = items.map(item => vscode.workspace.asRelativePath(item, true)).join('\n');
+        const choice = await vscode.window.showWarningMessage(
+            'Copy these files without exclusions?',
+            {
+                modal: true,
+                detail: `${targets}\n\nIncludes dot files and paths excluded by .gitignore or Copy4AI settings. Folders include their contents. Sensitive files may be included. Binary, encoding, and file size limits still apply.`
+            },
+            'Force Copy'
+        );
+        if (choice === 'Force Copy') {
+            await this.copyToClipboard(undefined, items, { bypassExclusions: true });
+        }
     }
 
     public static async copyScmChanges(uris: ReadonlyArray<vscode.Uri>): Promise<void> {
@@ -346,25 +376,12 @@ export class Copy4AIService {
     private static parseFilePathClipboard(value: string): vscode.Uri[] {
         return value
             .split(/\r?\n/)
-            .map(line => line.trim())
             .filter(Boolean)
-            .map(item => this.uriFromClipboardPath(item));
-    }
-
-    private static uriFromClipboardPath(value: string): vscode.Uri {
-        if (this.looksLikeUri(value) && !this.looksLikeWindowsDrivePath(value)) {
-            return vscode.Uri.parse(value);
-        }
-
-        return vscode.Uri.file(value);
-    }
-
-    private static looksLikeUri(value: string): boolean {
-        return /^[A-Za-z][A-Za-z0-9+.-]*:/.test(value);
-    }
-
-    private static looksLikeWindowsDrivePath(value: string): boolean {
-        return /^[A-Za-z]:[\\/]/.test(value);
+            .map(item => UriUtils.fromClipboardPath(
+                item,
+                vscode.workspace.workspaceFolders?.map(folder => folder.uri) ?? [],
+                homedir()
+            ));
     }
 
     private static async dedupeCoveredItems(items: ReadonlyArray<vscode.Uri>): Promise<vscode.Uri[]> {
@@ -435,6 +452,23 @@ export class Copy4AIService {
 }
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
+    const copyEditorTabsCommand = vscode.commands.registerCommand(
+        'snapsource.copyEditorTabs',
+        async (uri: unknown) => {
+            let items: vscode.Uri[];
+            try {
+                if (!(uri instanceof vscode.Uri)) {
+                    throw new Error('Open the context menu on a file tab to copy selected tabs.');
+                }
+                items = await TabSelection.resolve(uri);
+            } catch (error) {
+                const message = error instanceof Error ? error.message : 'Could not copy selected tabs';
+                vscode.window.showErrorMessage(`Copy4AI: ${message}`);
+                throw error;
+            }
+            await Copy4AIService.copyToClipboard(undefined, items);
+        }
+    );
     const copyToClipboardCommand = vscode.commands.registerCommand(
         'snapsource.copyToClipboard',
         async (uri?: vscode.Uri, uris?: vscode.Uri[]) => {
@@ -446,6 +480,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         'snapsource.repeatLastCopy',
         async () => {
             await Copy4AIService.repeatLastCopy();
+        }
+    );
+
+    const forceCopyCommand = vscode.commands.registerCommand(
+        'snapsource.forceCopy',
+        async () => {
+            await Copy4AIService.forceCopy();
         }
     );
 
@@ -515,7 +556,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
     context.subscriptions.push(
         copyToClipboardCommand,
+        copyEditorTabsCommand,
         repeatLastCopyCommand,
+        forceCopyCommand,
         copyProjectStructureCommand,
         copyScmResourcesCommand,
         copyScmChangesCommand,

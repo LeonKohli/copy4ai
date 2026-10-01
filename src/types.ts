@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 export interface Copy4AIOptions {
     readonly projectTreeOnly?: boolean;
     readonly includeProjectTree?: boolean;
+    readonly bypassExclusions?: boolean;
 }
 
 export interface FileContent {

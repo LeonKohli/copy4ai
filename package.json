@@ -69,6 +69,16 @@
   "contributes": {
     "commands": [
       {
+        "command": "snapsource.copyEditorTabs",
+        "title": "Copy Selected Tabs (Copy4AI)",
+        "category": "Copy4AI"
+      },
+      {
+        "command": "snapsource.forceCopy",
+        "title": "Force Copy Without Exclusions…",
+        "category": "Copy4AI"
+      },
+      {
         "command": "snapsource.copyToClipboard",
         "title": "Copy to Clipboard (Copy4AI)",
         "category": "Copy4AI"
@@ -106,6 +116,10 @@
     ],
     "menus": {
       "commandPalette": [
+        {
+          "command": "snapsource.copyEditorTabs",
+          "when": "false"
+        },
         {
           "command": "snapsource.copyToClipboard",
           "when": "false"
@@ -159,9 +173,9 @@
       ],
       "editor/title/context": [
         {
-          "command": "snapsource.copyToClipboard",
+          "command": "snapsource.copyEditorTabs",
           "group": "copy4ai@1",
-          "when": "isFileSystemResource && !multipleEditorsSelectedInGroup"
+          "when": "isFileSystemResource"
         }
       ],
       "scm/resourceState/context": [

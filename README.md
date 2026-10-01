@@ -119,21 +119,33 @@ export const add = (a: number, b: number) => a + b;
 
 | Command | Where to find it | What it copies |
 |---|---|---|
-| **Copy to Clipboard (Copy4AI)** | Explorer, editor, and editor tab context menus | The selected files and folders, with a project tree |
+| **Copy to Clipboard (Copy4AI)** | Explorer and editor context menus | The selected files and folders, with a project tree |
+| **Copy Selected Tabs (Copy4AI)** | Editor tab context menu | The selected file tabs, read from disk, with a project tree |
 | **Copy Project Structure (Copy4AI)** | Explorer and editor context menus | Only the tree: the folder you right-clicked, or the whole workspace when you right-click a file |
 | **Copy Source Control File Contents (Copy4AI)** | Source Control view, on changed files | The full contents of the selected changed files |
 | **Copy Changes (Copy4AI)** | Source Control view, on changed files in Git repositories | A unified diff against `HEAD` for the selected files |
 | **Copy4AI: Repeat Last Copy** | Command Palette | The files and folders from your last copy, read fresh from disk |
+| **Copy4AI: Force Copy Without Exclusions…** | Command Palette | The current selection without ignore rules, after confirmation |
 | **Copy4AI: Toggle Project Tree** | Command Palette | Nothing. Switches `copy4ai.includeProjectTree` in your user settings. |
 | **Copy4AI: Toggle Dot Files Inclusion** | Command Palette | Nothing. Switches `copy4ai.ignoreDotFiles` in your user settings. |
 
 Copy4AI has no default keyboard shortcuts. To add one, bind `snapsource.copyToClipboard` in **Keyboard Shortcuts**. The shortcut copies the selection in the focused Explorer or Source Control view, including a multi-selection. If nothing is selected, it copies the file in the active editor.
 
-The editor tab entry is hidden while several tabs are selected, because VS Code does not pass a tab selection to extensions ([microsoft/vscode#213699](https://github.com/microsoft/vscode/issues/213699)). To hide **Copy Project Structure (Copy4AI)** from the context menus, set `copy4ai.showCopyProjectStructure` to `false`.
+To copy several open files, Ctrl-click their tabs on Windows or Linux, or Cmd-click on macOS. Right-click a selected tab and choose **Copy Selected Tabs (Copy4AI)**. The command copies the saved files, so save your edits first. Right-clicking a tab outside the selection copies that file instead. The files must belong to the same workspace folder.
+
+To hide **Copy Project Structure (Copy4AI)** from the context menus, set `copy4ai.showCopyProjectStructure` to `false`.
 
 **Copy Source Control File Contents (Copy4AI)** skips deleted files and shows a warning that names them. If every selected file was deleted, the command fails and your clipboard stays unchanged.
 
 **Copy4AI: Repeat Last Copy** copies the previous selection again, so you can edit your code and copy the same set without picking the files a second time. Nothing is cached: folders are read again, exclusion rules are applied again, and files deleted in the meantime are skipped with a warning. The command appears once you have copied something in the current window, and Copy4AI forgets the selection when the window reloads. To bind it, use `snapsource.repeatLastCopy`.
+
+## Copy excluded files once
+
+Select files or folders in the Explorer, or open the file you want to copy. Run **Copy4AI: Force Copy Without Exclusions…** from the Command Palette. Check the listed targets, then choose **Force Copy**.
+
+This copy includes dot files, `.gitignore` matches, and files excluded by `copy4ai.exclude` or `copy4ai.excludeContentPatterns`. Selected folders include their contents, which can include sensitive files and large dependency directories. Binary files, unsupported encodings, and the file size limit still produce placeholders.
+
+Force Copy leaves your settings and the previous **Repeat Last Copy** selection unchanged. Its progress notification includes **Cancel**. Cancelling before the copy finishes leaves the clipboard unchanged.
 
 ## The project tree
 
@@ -210,6 +222,8 @@ Use `copy4ai.exclude` in your user or workspace settings:
 - `paths` excludes exact files or folders, and everything inside those folders. Write the paths relative to the workspace folder. Absolute paths also work for local files.
 - `patterns` uses `.gitignore` syntax. `build/` matches only folders named `build`. `*.tmp` matches files at any depth.
 
+Patterns are case-sensitive, including patterns from `.gitignore` and `copy4ai.excludeContentPatterns`. For example, `*.BASE.*` excludes `tsconfig.BASE.json` but keeps `tsconfig.base.json`. Copy4AI does not read Git's `core.ignoreCase` setting.
+
 VS Code merges your object with the default, so `{}` keeps `node_modules` and `*.log` excluded. To turn off every Copy4AI exclusion, set both lists to `[]`. Dot files and `.gitignore` matches still stay out until you change their own settings.
 
 To keep a file in the tree but drop its contents, add a pattern to `copy4ai.excludeContentPatterns`, for example `["**/*.svg", "assets/**"]`.
@@ -249,8 +263,8 @@ In Restricted Mode, the copy commands still work, but Copy4AI ignores Copy4AI se
 - Only the `.gitignore` in the workspace root is read. Rules in nested `.gitignore` files don't apply.
 - One copy can't mix files from different folders of a multi-root workspace.
 - **Copy to Clipboard (Copy4AI)** is not in the context menu of a workspace root folder. Select the files and folders inside it instead, or use **Copy Project Structure (Copy4AI)** for the tree.
-- To read the Explorer selection from a keyboard shortcut, Copy4AI briefly puts the selected file paths on the clipboard, then restores the previous clipboard content. A clipboard manager can record those paths.
-- The editor tab entry is hidden while several tabs are selected. See [Commands](#commands).
+- To read the Explorer selection from a keyboard shortcut or the selected editor tabs, Copy4AI briefly puts file paths on the clipboard, then restores the previous clipboard text. A clipboard manager can record those paths.
+- Tab multi-selection supports text files. Tabs without file resources, such as terminals, are ignored. If VS Code's copied paths cannot be mapped unambiguously to the open files, Copy4AI stops instead of guessing.
 
 ## Requirements
 
